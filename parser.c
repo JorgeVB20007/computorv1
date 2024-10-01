@@ -1,10 +1,9 @@
 #include "parser.h"
 
 /*
-*	0 == BAD
-*	1 == GOOD
+*	Exits when error, continues when check succeeded.
 */
-static int check_parentheses(char **input)
+void check_parentheses(char **input)
 {
 	char	parenthesis_type;
 
@@ -18,49 +17,37 @@ static int check_parentheses(char **input)
 	{
 		if (**input == '(' || **input == '[' || **input == '{')
 		{
-			if (!check_parentheses(input))
-				return (0);
+			check_parentheses(input);
 		}
 		if (**input == '=' && parenthesis_type != 0)
-		{
-			write(2, "Error: Equal sign '=' found inside parentheses.\n", 48);
-			return (0);
-		}
+			error_manager("Equal sign '=' found inside parentheses.");
 		if (**input == ')' || **input == ']' || **input == '}')
 		{
 			if (parenthesis_type == 0)
-			{
-				write(2, "Error: Parenthesis closure doesn't match any opening parenthesis.\n", 66);
-				return (0);
-			}
+				error_manager("Parenthesis closure doesn't match any opening parenthesis.");
 			else
 			{
 				if ((parenthesis_type == '(' && **input == ')') || (parenthesis_type == '[' && **input == ']') || (parenthesis_type == '{' && **input == '}'))
 				{
 					(*input)++;
-					return (1);
+					return ;
 				}
 				write(2, "Error: Trying to close '", 24);
 				write(2, &parenthesis_type, 1);
 				write(2, "' with '", 8);
 				write(2, *input, 1);
 				write(2, "'.\n", 3);
-				return (0);
+				return ;
 			}
 		}
 		(*input)++;
 
 	}
-	if (!parenthesis_type)
-		return (1);
-	else
-	{
-		write(2, "Error: At least one parenthesis wasn't closed properly.\n", 56);
-		return (0);
-	}
+	if (parenthesis_type)
+		error_manager("At least one parenthesis wasn't closed properly.");
 }
 
-static char get_variable_char(char *input)
+char get_variable_char(char *input)
 {
 	char	result = 0;
 
@@ -128,8 +115,7 @@ t_item *typeit(char *input)
 			{
 				if (retval)
 					free(retval);
-				dprintf(2, "Error: Used multiple period signs (%c) for a single number.\n", PERIOD);
-				return (NULL);
+				error_manager("Used multiple period signs for a single number.");
 			}
 			toadd.type = NUMBER;
 			toadd.value = 0;
@@ -169,8 +155,7 @@ t_item *typeit(char *input)
 			{
 				if (retval)
 					free(retval);
-				dprintf(2, "Error: Used multiple equal signs (=).\n");
-				return (NULL);
+				error_manager("Used multiple equal signs (=).");
 			}
 			toadd.numvalue = 0.0;
 			toadd.value = 0;
@@ -234,39 +219,21 @@ t_item *typeit(char *input)
 int find_illegal_stuff(t_item *items)
 {
 	if (items->type == OPERATOR && (items->value == MUL || items->value == DIV))
-	{
-		dprintf(2, "Error: Operation isn't preceeded by an expression.\n");
-		return (1);
-	}
+		error_manager("Operation isn't preceeded by an expression.");
 	while (items->type != THEEND)
 	{
 		if (items->type == OPERATOR && (((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value)) == CLOSING || (items + 1)->type == THEEND || (items + 1)->type == EQUAL))
-		{
-			dprintf(2, "Error: Operation isn't followed by an expression.\n");
-			return (1);
-		}
+			error_manager("Operation isn't followed by an expression.");
 		else if (items->type == PARENTHESIS && get_parenthesis_type((items)->value) == OPENING && (items + 1)->type == OPERATOR && ((items + 1)->value == MUL || (items + 1)->value == DIV))
-		{
-			dprintf(2, "Error: Operation isn't preceeded by an expression.\n");
-			return (1);
-		}
+			error_manager("Operation isn't preceeded by an expression.");
 		else if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING && (items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING)
-		{
-			dprintf(2, "Error: Parentheses aren't holding any expression.\n");
-			return (1);
-		}
+			error_manager("Parentheses aren't holding any expression.");
 		else if (items->type == OPERATOR && (items + 1)->type == OPERATOR)
 		{
 			if ((items + 1)->value == MUL || (items + 1)->value == DIV)
-			{
-				dprintf(2, "Error: Two consecutive operators found (for exponents, use '^').\n");
-				return (1);
-			}
+				error_manager("Two consecutive operators found (for exponents, use '^').");
 			else if ((items + 2)->type == OPERATOR)
-			{
-				dprintf(2, "Error: Three or more consecutive operators found (double + or - with no parentheses are not allowed).\n");
-				return (1);
-			}
+				error_manager("Three or more consecutive operators found (double + or - with no parentheses are not allowed).");
 		}
 		else if (items->type == NUMBER && (items + 1)->type == NUMBER)
 		{
@@ -322,14 +289,7 @@ void make_negatives(t_item *items)
 				if ((items + 2)->type == NUMBER)
 				{
 					if ((items + 1)->value == SUB)
-					{
-						printf(">> %f turned to %f\n", (items + 2)->numvalue, (items + 2)->numvalue * -1.0f);
 						(items + 2)->numvalue *= -1.0;
-					}
-					else
-					{
-						printf(">> %f stayed the same.\n", (items + 2)->numvalue);
-					}
 					(items + 1)->type = NOTHING;
 				}
 				else if ((items + 2)->type == VARIABLE || ((items + 2)->type == PARENTHESIS && get_parenthesis_type((items + 2)->value) == OPENING))
@@ -399,122 +359,20 @@ t_item *append_multiplications(t_item *items)
 
 
 
-/*
-t_expression *turn2expressions(t_item *items)
-{
-	t_expression	*result;
-	t_expression	*new_item;
-	t_expression	*last = NULL;
-	if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
-		items++;
 
-	while (items->type != THEEND && get_parenthesis_type(items->value) == OPENING)
+t_item *parser(char *line, char *variablechar)
+{
+	advance(&line);
+
+	*variablechar = get_variable_char(line);
+	if (*variablechar == -1)
+		error_manager("More than one variable was given.");
+	t_item	*items = typeit(line);
+
+	if (find_illegal_stuff(items))
 	{
-		new_item = malloc(sizeof(t_expression));
-		new_item->value = 0.0f;
-		new_item->degree = 0;
-		new_item->next_operation = IDK;
-		new_item->prev_operation = IDK;
-		new_item->inside = NULL;
-		new_item->prev = NULL;
-		new_item->next = NULL;
-
-		if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
-		{
-			new_item->inside = turn2expressions(items);
-			int index = 1;
-			while (index)
-			{
-				items++;
-				if (items->type == PARENTHESIS)
-				{
-					if (get_parenthesis_type(items->value) == CLOSING)
-						index--;
-					else
-						index++;
-				}
-			}
-			items++;
-			if (items->type == OPERATOR)
-			{
-				new_item->next_operation = items->type;
-				items++;
-			}
-			else if (items->type == VARIABLE || items->type == NUMBER || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
-				new_item->next_operation = MUL;
-		}
-		else if (items->type == NUMBER)
-		{
-			new_item->value = items->value;
-			if ((items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
-				new_item->next_operation = MUL;
-			else if ((items + 1)->type == OPERATOR)
-			{
-				new_item->next_operation = (items + 1)->value;
-				items++;
-			}
-		}
-		else if (items->type == VARIABLE)
-		{
-			new_item->value = 1.0f;
-			new_item->degree = 1;
-			if ((items + 1)->type == VARIABLE || (items + 1)->type == NUMBER || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
-				new_item->next_operation = MUL;
-		}
-		new_item->prev = last;
-		new_item->prev_operation = last->next_operation;
-		last->next = new_item;
-
-		items++;
+		free(items);
+		exit (1);
 	}
+	return (items);
 }
-*/
-
-/*
-t_group *form_group(t_item *items, t_group *previous)
-{
-	t_group *result = new_group();
-	t_group *current = result;
-	double	currentval;
-	double	currentexp;
-
-	current->prev = previous;
-	if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
-		items++;
-	
-	while (!(items->type == PARENTHESIS && get_parenthesis_type(items->value) == CLOSING) && items->type != THEEND)
-	{
-		if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
-		{
-			result->inside = form_group(items, current);
-		}
-		currentval = 1.0f;
-		currentexp = 0.0f;
-		t_item *aux_items = items;
-
-		while (1)
-		{
-			if (items->type == OPERATOR && items->value == SUB)
-			{
-				currentval *= -1.0f;
-				items++;
-			}
-			if (items->type == NUMBER)
-			{
-				currentval *= items->numvalue;
-			}
-			//else if (items->type == )
-		}
-	}
-	return (result);
-}
-*/
-
-
-
-
-int main()
-{
-
-}
-

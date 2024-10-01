@@ -38,3 +38,9 @@ int is_illegal(char c)
 		return (0);
 	return (1);
 }
+
+void error_manager(const char *reason)
+{
+	dprintf(2, "\033[1;31mError:\033[0m %s\n", reason);
+	exit (1);
+}

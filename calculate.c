@@ -74,10 +74,8 @@ double	power_stacking(t_item **items)
 			return (pow(currentvalue, power_stacking(items)));
 		}
 		else
-		{
-			dprintf(2, "Error: An expression other than a number was found after an exponent.\n");
-			exit(1);
-		}
+			error_manager("An expression other than a number was found after an exponent.");
+		return (0.0);
 	}
 	else
 		return(currentvalue);
@@ -112,7 +110,11 @@ t_group_item	*make_groups(t_item **items)
 				if ((*items)->type == NUMBER)
 				{
 					if (is_division)
+					{
+						if (power_stacking(items) == 0.0)
+							error_manager("A division by 0 was encountered.");
 						result[size].multiplier /= power_stacking(items);
+					}
 					else
 						result[size].multiplier *= power_stacking(items);
 				}
@@ -130,10 +132,7 @@ t_group_item	*make_groups(t_item **items)
 								result[size].exponent += power_stacking(items);
 						}
 						else
-						{
-							dprintf(2, "Error: An expression other than a number was found after an exponent.\n");
-							exit(1);
-						}
+							error_manager("An expression other than a number was found after an exponent.");
 					}
 					else
 					{
@@ -151,6 +150,8 @@ t_group_item	*make_groups(t_item **items)
 
 					if ((*items)->value == DIV)
 						is_division = 1;
+					else
+						is_division = 0;
 					(*items)++;
 				}
 				else
@@ -161,7 +162,6 @@ t_group_item	*make_groups(t_item **items)
 			}
 			size++;
 		}
-		//result = realloc();
 	}
 	result = realloc(result, sizeof(t_group_item) * (size + 1));
 	result[size].type = THEEND;
@@ -184,6 +184,8 @@ static void		apply_to_all_members_in_parenthesis(t_group_item multiplier, t_grou
 				items->value = multiplier.value;
 			if (is_division)
 			{
+				if (items->multiplier == 0.0)
+					error_manager("A division by 0 was encountered.");
 				items->multiplier = multiplier.multiplier / items->multiplier;
 				items->exponent = multiplier.exponent - items->exponent;
 			}
@@ -230,19 +232,84 @@ static t_group_item	*get_parenthesis_end(t_group_item *items)
 				relative_scope--;
 		}
 		else if (items->type == THEEND)
-		{
-			dprintf(2, "Error finding close parenthesis.\n");
-			exit(1);
-		}
+			error_manager("(FATAL) error finding closgns parenthesis.");
 		items++;
 	}
 	return (items);
 }
 
-void	merge_multiplication_expression_and_parenthesis(t_group_item *items)
+static t_group_item	*multiplybyone_safety(t_group_item *items)
+{
+	t_group_item	*itemscpy = items;
+	t_group_item	*new_items = NULL;
+	t_group_item	*new_itemscpy = NULL;
+	int				size = 1;
+
+	while (itemscpy->type != THEEND)
+	{
+		size++;
+		itemscpy++;
+	}
+	itemscpy = items;
+	while (itemscpy->type != THEEND)
+	{
+		if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
+		((itemscpy + 1)->value == MUL || (itemscpy + 1)->value == DIV) && \
+		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
+		{
+			itemscpy += 2;
+		}
+		else if (itemscpy->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
+		{
+			size += 2;
+		}
+		itemscpy++;
+	}
+
+	itemscpy = items;
+	new_items = calloc(sizeof(t_group_item), size);
+	new_itemscpy = new_items;
+
+	while (itemscpy->type != THEEND)
+	{
+		if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
+		((itemscpy + 1)->value == MUL || (itemscpy + 1)->value == DIV) && \
+		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
+		{
+			memcpy(new_itemscpy, itemscpy, sizeof(t_group_item) * 3);
+			itemscpy += 2;
+			new_itemscpy += 2;
+		}
+		else if (itemscpy->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
+		{
+			new_itemscpy->type = EXPRESSION;
+			new_itemscpy->multiplier = 1.0;
+			new_itemscpy->exponent = 0.0;
+			new_itemscpy++;
+			new_itemscpy->type = OPERATOR;
+			new_itemscpy->value = MUL;
+			new_itemscpy++;
+			new_itemscpy->type = PARENTHESIS;
+			new_itemscpy->value = itemscpy->value;
+		}
+		else
+			memcpy(new_itemscpy, itemscpy, sizeof(t_group_item));
+		new_itemscpy++;
+		itemscpy++;
+	}
+	memcpy(new_itemscpy, itemscpy, sizeof(t_group_item));
+	free(items);
+	return (new_items);
+}
+
+t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *items)
 {
 	t_group_item	*prev_expression = NULL;
 	t_group_item	*parenthesis_end = NULL;
+	t_group_item	*new_items;
+
+	items = multiplybyone_safety(items);
+	new_items = items;
 
 	while (items->type != THEEND)
 	{
@@ -265,12 +332,28 @@ void	merge_multiplication_expression_and_parenthesis(t_group_item *items)
 				}
 				else
 				{
+					if ((parenthesis_end + 1)->multiplier == 0.0)
+						error_manager("A division by 0 was encountered.");
 					prev_expression->exponent -= (parenthesis_end + 1)->exponent;
 					prev_expression->multiplier /= (parenthesis_end + 1)->multiplier;
 				}
 				(parenthesis_end + 1)->type = NOTHING;
 				parenthesis_end->type = NOTHING;
 			}
+		}
+		items++;
+	}
+	return (new_items);
+}
+
+void	apply_final_negatives(t_group_item *items)
+{
+	while (items->type != THEEND)
+	{
+		if (items->type == OPERATOR && items->value == SUB && (items + 1)->type == EXPRESSION)
+		{
+			items->value = SUM;
+			(items + 1)->multiplier *= -1.0;
 		}
 		items++;
 	}
@@ -298,6 +381,29 @@ void	multiply_expression_by_parenthesis(t_group_item *items)
 
 }
 
+// t_group_item	product_of_long_expressions(t_group_item *items)
+// {
+// 	t_group_item	*items_cpy = items;
+// 	t_group_item	*aux_items_cpy = items;
+// 	t_group_item	*left
+
+// 	while (items_cpy->type != THEEND)
+// 	{
+// 		if (items_cpy == PARENTHESIS)
+// 		{
+// 			aux_items_cpy = get_parenthesis_end(items_cpy + 1);
+// 			if (aux_items_cpy->type == OPERATOR && \
+// 			(aux_items_cpy->value == MUL || aux_items_cpy->value == DIV) && \
+// 			(aux_items_cpy + 1)->type == PARENTHESIS && get_parenthesis_type((aux_items_cpy + 1)->value) == OPENING)
+// 			{
+// 				aux_items_cpy += 2;
+// 			}
+// 		}
+// 		items_cpy++;
+// 	}
+// }
+
+
 void	add_everything_up(t_group_item *items)
 {
 	t_group_item	*items_aux = items;
@@ -319,10 +425,7 @@ void	add_everything_up(t_group_item *items)
 						else if (items_aux->value == SUB)
 							items->multiplier -= (items_aux + 1)->multiplier;
 						else
-						{
-							dprintf(2, "ERROR: Operations other than + and - were found at this step.\n");
-							exit (1);
-						}
+							error_manager("Operations other than + and - were found at this step.");
 						items_aux->type = NOTHING;
 						items_aux++;
 						items_aux->type = NOTHING;

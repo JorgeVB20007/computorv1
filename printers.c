@@ -54,31 +54,67 @@ void	typeprinter(t_item *types)
 		printf("> Type: \033[1;97m----- The End -----\033[0m\n\n");
 }
 
+void	type_line_printer(t_item *types)
+{
+	if (!types)
+		return ;
+	int	idx = 0;
+	while (types[idx].type != THEEND)
+	{
+		if (types[idx].type == NUMBER)
+			printf("\033[0;33m%g", types[idx].numvalue);
+		else if (types[idx].type == PARENTHESIS)
+			printf("\033[0;34m%c", types[idx].value);
+		else if (types[idx].type == OPERATOR)
+		{
+			if (types[idx].value == SUM)
+				printf("\033[0;32m+");
+			else if (types[idx].value == SUB)
+				printf("\033[0;32m-");
+			else if (types[idx].value == MUL)
+				printf("\033[0;32m*");
+			else if (types[idx].value == DIV)
+				printf("\033[0;32m/");
+			else if (types[idx].value == POW)
+				printf("\033[0;32m^");
+		}
+		else if (types[idx].type == VARIABLE)
+			printf("\033[0;35m%c", types[idx].value);
+		else if (types[idx].type == EQUAL)
+			printf("\033[1;36m=");
+		else
+			printf("\033[0;90m !!!!! \033[0m\n");
+		idx++;
+		printf("\033[0m ");
+	}
+	printf("\n");
+}
+
 void single_item_printer(t_item *type)
 {
 	if (type->type == NUMBER)
-		printf("> Type: \033[0;33mNBR\033[0m | Value: %f <", type->numvalue);
+		printf("> Type: \033[0;33mNBR%f <", type->numvalue);
 	else if (type->type == PARENTHESIS)
-		printf("> Type: \033[0;34mPAR\033[0m | Value: %c <", type->value);
+		printf("> Type: \033[0;34mPAR%c <", type->value);
 	else if (type->type == OPERATOR)
 	{
 		if (type->value == SUM)
-			printf("> Type: \033[0;32mOPR\033[0m | Value: SUM (+) <");
+			printf("> Type: \033[0;32mOPRSUM (+) <");
 		else if (type->value == SUB)
-			printf("> Type: \033[0;32mOPR\033[0m | Value: SUB (-) <");
+			printf("> Type: \033[0;32mOPRSUB (-) <");
 		else if (type->value == MUL)
-			printf("> Type: \033[0;32mOPR\033[0m | Value: MUL (*) <");
+			printf("> Type: \033[0;32mOPRMUL (*) <");
 		else if (type->value == DIV)
-			printf("> Type: \033[0;32mOPR\033[0m | Value: DIV (/) <");
+			printf("> Type: \033[0;32mOPRDIV (/) <");
 		else if (type->value == POW)
-			printf("> Type: \033[0;32mOPR\033[0m | Value: POW (^) <");
+			printf("> Type: \033[0;32mOPRPOW (^) <");
 		else
-			printf("> Type: \033[0;32mOPR\033[0m | Value: IDK (?) <");
+			printf("> Type: \033[0;32mOPRIDK (?) <");
 	}
 	else if (type->type == VARIABLE)
-		printf("> Type: \033[0;35mVAR\033[0m | Value: %c <", type->value);
+		printf("> Type: \033[0;35mVAR%c <", type->value);
 	else if (type->type == EQUAL)
-		printf("> Type: \033[1;36mEQL\033[0m | Value: = <");
+		printf("> Type: \033[1;36mEQL= <");
 	else if (type->type == NOTHING)
 		printf("\033[0;90m> Type: Nothing\033[0m <");
 	else if (type->type == THEEND)
@@ -123,7 +159,7 @@ void	groupprinter(t_group_item *items)
 				printf("%g", items[idx].multiplier);
 			else if (items[idx].exponent == 0.0)
 				printf("%g", items[idx].multiplier);
-			if (items[idx].exponent > 1.0)
+			if (items[idx].exponent > 1.0 || items[idx].exponent <= -1.0)
 				printf("%c^%g", items[idx].value, items[idx].exponent);
 			else if (items[idx].exponent == 1.0)
 				printf("%c", items[idx].value);

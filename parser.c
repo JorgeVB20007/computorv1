@@ -21,6 +21,11 @@ static int check_parentheses(char **input)
 			if (!check_parentheses(input))
 				return (0);
 		}
+		if (**input == '=' && parenthesis_type != 0)
+		{
+			write(2, "Error: Equal sign '=' found inside parentheses.\n", 48);
+			return (0);
+		}
 		if (**input == ')' || **input == ']' || **input == '}')
 		{
 			if (parenthesis_type == 0)
@@ -53,45 +58,6 @@ static int check_parentheses(char **input)
 		write(2, "Error: At least one parenthesis wasn't closed properly.\n", 56);
 		return (0);
 	}
-}
-
-/*
-*	[+, -, *, /, ^]
-*/
-static int	is_operation(char c)
-{
-	if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^')
-		return (1);
-	return (0);
-}
-
-static int	is_parenthesis(char c)
-{
-	if (c == '[' || c == ']' || c == '(' || c == ')' || c == '{' || c == '}')
-		return (1);
-	return (0);
-}
-
-static int	is_closing_parenthesis(char c)
-{
-	if (c == ']' || c == ')' || c == '}')
-		return (1);
-	return (0);
-}
-
-static int is_illegal(char c)
-{
-	if (isalpha(c))
-		return (0);
-	if (isdigit(c))
-		return (0);
-	if (is_operation(c))
-		return (0);
-	if (is_parenthesis(c))
-		return (0);
-	if (c == PERIOD)
-		return (0);
-	return (1);
 }
 
 static char get_variable_char(char *input)
@@ -139,7 +105,7 @@ t_item *typeit(char *input)
 			while (isdigit(*input))
 			{
 				value *= 10.0;
-				value += (float)((*input) - '0');
+				value += (double)((*input) - '0');
 				input++;
 			}
 			if (*input == PERIOD)
@@ -149,7 +115,7 @@ t_item *typeit(char *input)
 				while (isdigit(*input))
 				{
 					decimals *= 10.0;
-					decimals += (float)((*input) - '0');
+					decimals += (double)((*input) - '0');
 					input++;
 				}
 				while (decimals >= 1.0)
@@ -238,50 +204,16 @@ t_item *typeit(char *input)
 	return (retval);
 }
 
-static void	typeprinter(t_item *types)
-{
-	if (!types)
-		return ;
-	int	idx = 0;
-	while (types[idx].type != THEEND)
-	{
-		if (types[idx].type == NUMBER)
-			printf("> Type: \033[0;33mNBR\033[0m | Value: %f\n", types[idx].numvalue);
-		else if (types[idx].type == PARENTHESIS)
-			printf("> Type: \033[0;34mPAR\033[0m | Value: %c\n", types[idx].value);
-		else if (types[idx].type == OPERATOR)
-		{
-			if (types[idx].value == SUM)
-				printf("> Type: \033[0;32mOPR\033[0m | Value: SUM (+)\n");
-			else if (types[idx].value == SUB)
-				printf("> Type: \033[0;32mOPR\033[0m | Value: SUB (-)\n");
-			else if (types[idx].value == MUL)
-				printf("> Type: \033[0;32mOPR\033[0m | Value: MUL (*)\n");
-			else if (types[idx].value == DIV)
-				printf("> Type: \033[0;32mOPR\033[0m | Value: DIV (/)\n");
-			else if (types[idx].value == POW)
-				printf("> Type: \033[0;32mOPR\033[0m | Value: POW (^)\n");
-		}
-		else if (types[idx].type == VARIABLE)
-			printf("> Type: \033[0;35mVAR\033[0m | Value: %c\n", types[idx].value);
-		else if (types[idx].type == EQUAL)
-			printf("> Type: \033[1;36mEQL\033[0m | Value: =\n");
-		else
-			printf(">> Weird type: %d | Value: %d, NValue: %f", types[idx].type, types[idx].value, types[idx].numvalue);
-		idx++;
-	}
-}
-
-static int are_there_parentheses(const t_item *items)
-{
-	while (items->type != THEEND)
-	{
-		if (items->type == PARENTHESIS)
-			return (1);
-		items++;
-	}
-	return (0);
-}
+// static int are_there_parentheses(const t_item *items)
+// {
+// 	while (items->type != THEEND)
+// 	{
+// 		if (items->type == PARENTHESIS)
+// 			return (1);
+// 		items++;
+// 	}
+// 	return (0);
+// }
 
 // static t_item *simplify(t_item *thelong)
 // {
@@ -291,35 +223,50 @@ static int are_there_parentheses(const t_item *items)
 /*
 *	0 = GOOD
 *	1 = BAD
+
+?	Finds:
+?	
+?	
+?	
+?	
+?	
 */
 int find_illegal_stuff(t_item *items)
 {
-	if (items->type == OPERATOR)
+	if (items->type == OPERATOR && (items->value == MUL || items->value == DIV))
 	{
 		dprintf(2, "Error: Operation isn't preceeded by an expression.\n");
 		return (1);
 	}
 	while (items->type != THEEND)
 	{
-		if (items->type == OPERATOR && (((items + 1)->type == PARENTHESIS && is_closing_parenthesis((items + 1)->value) || (items + 1)->type == THEEND)))
+		if (items->type == OPERATOR && (((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value)) == CLOSING || (items + 1)->type == THEEND || (items + 1)->type == EQUAL))
 		{
 			dprintf(2, "Error: Operation isn't followed by an expression.\n");
 			return (1);
 		}
-		else if (items->type == PARENTHESIS && !is_closing_parenthesis((items)->value) && (((items + 1)->type == OPERATOR)
+		else if (items->type == PARENTHESIS && get_parenthesis_type((items)->value) == OPENING && (items + 1)->type == OPERATOR && ((items + 1)->value == MUL || (items + 1)->value == DIV))
 		{
 			dprintf(2, "Error: Operation isn't preceeded by an expression.\n");
 			return (1);
 		}
-		else if (items->type == PARENTHESIS && (((items + 1)->type == PARENTHESIS && is_closing_parenthesis((items + 1)->value))
+		else if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING && (items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING)
 		{
 			dprintf(2, "Error: Parentheses aren't holding any expression.\n");
 			return (1);
 		}
 		else if (items->type == OPERATOR && (items + 1)->type == OPERATOR)
 		{
-			dprintf(2, "Error: Two consecutive operators found.\n");
-			return (1);
+			if ((items + 1)->value == MUL || (items + 1)->value == DIV)
+			{
+				dprintf(2, "Error: Two consecutive operators found (for exponents, use '^').\n");
+				return (1);
+			}
+			else if ((items + 2)->type == OPERATOR)
+			{
+				dprintf(2, "Error: Three or more consecutive operators found (double + or - with no parentheses are not allowed).\n");
+				return (1);
+			}
 		}
 		else if (items->type == NUMBER && (items + 1)->type == NUMBER)
 		{
@@ -331,16 +278,137 @@ int find_illegal_stuff(t_item *items)
 	return (0);
 }
 
+void make_negatives(t_item *items)
+{
+	int	was_operator = 0;
+	int	apply_negative = 0;
 
-void turn2expressions(t_item *items)
+	if (items->type == OPERATOR)
+	{
+		was_operator = 1;
+		if (items->value == SUB)
+			apply_negative = 1;
+		if ((items + 1)->type == NUMBER)
+		{
+			items->type = NOTHING;
+			items++;
+			if (apply_negative)
+				items->numvalue *= -1.0f;
+		}
+		else if ((items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == OPENING))
+		{
+			if (apply_negative)
+			{
+				items->type = NUMBER;
+				items->numvalue = -1.0;
+				items->value = 0;
+			}
+			else
+				items->type = NOTHING;
+			items++;
+		}
+	}
+
+	was_operator = 0;
+	apply_negative = 0;
+	(void)was_operator;
+
+	while (items->type != THEEND)
+	{
+		if (items->type == OPERATOR || (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING))
+		{
+			if ((items + 1)->type == OPERATOR)
+			{
+				if ((items + 2)->type == NUMBER)
+				{
+					if ((items + 1)->value == SUB)
+					{
+						printf(">> %f turned to %f\n", (items + 2)->numvalue, (items + 2)->numvalue * -1.0f);
+						(items + 2)->numvalue *= -1.0;
+					}
+					else
+					{
+						printf(">> %f stayed the same.\n", (items + 2)->numvalue);
+					}
+					(items + 1)->type = NOTHING;
+				}
+				else if ((items + 2)->type == VARIABLE || ((items + 2)->type == PARENTHESIS && get_parenthesis_type((items + 2)->value) == OPENING))
+				{
+					if ((items + 1)->value == SUB)
+					{
+						(items + 1)->type = NUMBER;
+						(items + 1)->value = 0;
+						(items + 1)->numvalue = -1.0;
+					}
+					else
+					{
+						(items + 1)->type = NOTHING;
+					}
+				}
+			}
+		}
+		items++;
+	}
+}
+
+t_item *append_multiplications(t_item *items)
+{
+	t_item	*result = malloc(0);
+	int		size = 0;
+
+	while (items->type != THEEND)
+	{
+		if (items->type == OPERATOR || items->type == EQUAL)
+		{
+			result = realloc(result, sizeof(t_item) * (size + 1));
+
+			memcpy(&(result[size]), items, sizeof(t_item));
+			size++;
+		}
+		else if (items->type == NUMBER || items->type == VARIABLE || (items->type == PARENTHESIS && get_parenthesis_type(items->value) == CLOSING))
+		{
+			if ((items + 1)->type == NUMBER || (items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == OPENING))
+			{
+				result = realloc(result, sizeof(t_item) * (size + 2));
+				memcpy(&(result[size]), items, sizeof(t_item));
+				result[size + 1].type = OPERATOR;
+				result[size + 1].value = MUL;
+				result[size + 1].numvalue = 0;
+				size += 2;
+			}
+			else
+			{
+				result = realloc(result, sizeof(t_item) * (size + 1));
+				memcpy(&(result[size]), items, sizeof(t_item));
+				size++;
+			}
+		}
+		else if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
+		{
+			result = realloc(result, sizeof(t_item) * (size + 1));
+			memcpy(&(result[size]), items, sizeof(t_item));
+			size++;
+		}
+		items++;
+	}
+	result = realloc(result, sizeof(t_item) * (size + 1));
+
+	memcpy(&(result[size]), items, sizeof(t_item));
+	return (result);
+}
+
+
+
+/*
+t_expression *turn2expressions(t_item *items)
 {
 	t_expression	*result;
 	t_expression	*new_item;
 	t_expression	*last = NULL;
-	if (items->type == PARENTHESIS && !is_closing_parenthesis(items->value))
+	if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
 		items++;
 
-	while (items->type != THEEND && !is_closing_parenthesis(items->value))
+	while (items->type != THEEND && get_parenthesis_type(items->value) == OPENING)
 	{
 		new_item = malloc(sizeof(t_expression));
 		new_item->value = 0.0f;
@@ -351,7 +419,7 @@ void turn2expressions(t_item *items)
 		new_item->prev = NULL;
 		new_item->next = NULL;
 
-		if (items->type == PARENTHESIS && !is_closing_parenthesis(items->value))
+		if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
 		{
 			new_item->inside = turn2expressions(items);
 			int index = 1;
@@ -360,7 +428,7 @@ void turn2expressions(t_item *items)
 				items++;
 				if (items->type == PARENTHESIS)
 				{
-					if (is_closing_parenthesis(items->value))
+					if (get_parenthesis_type(items->value) == CLOSING)
 						index--;
 					else
 						index++;
@@ -372,13 +440,13 @@ void turn2expressions(t_item *items)
 				new_item->next_operation = items->type;
 				items++;
 			}
-			else if (items->type == VARIABLE || items->type == NUMBER || ((items + 1)->type == PARENTHESIS && is_closing_parenthesis((items + 1)->value)))
+			else if (items->type == VARIABLE || items->type == NUMBER || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
 				new_item->next_operation = MUL;
 		}
 		else if (items->type == NUMBER)
 		{
 			new_item->value = items->value;
-			if ((items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && is_closing_parenthesis((items + 1)->value)))
+			if ((items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
 				new_item->next_operation = MUL;
 			else if ((items + 1)->type == OPERATOR)
 			{
@@ -390,7 +458,7 @@ void turn2expressions(t_item *items)
 		{
 			new_item->value = 1.0f;
 			new_item->degree = 1;
-			if ((items + 1)->type == VARIABLE || (items + 1)->type == NUMBER || ((items + 1)->type == PARENTHESIS && is_closing_parenthesis((items + 1)->value)))
+			if ((items + 1)->type == VARIABLE || (items + 1)->type == NUMBER || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == CLOSING))
 				new_item->next_operation = MUL;
 		}
 		new_item->prev = last;
@@ -400,39 +468,53 @@ void turn2expressions(t_item *items)
 		items++;
 	}
 }
+*/
+
+/*
+t_group *form_group(t_item *items, t_group *previous)
+{
+	t_group *result = new_group();
+	t_group *current = result;
+	double	currentval;
+	double	currentexp;
+
+	current->prev = previous;
+	if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
+		items++;
+	
+	while (!(items->type == PARENTHESIS && get_parenthesis_type(items->value) == CLOSING) && items->type != THEEND)
+	{
+		if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
+		{
+			result->inside = form_group(items, current);
+		}
+		currentval = 1.0f;
+		currentexp = 0.0f;
+		t_item *aux_items = items;
+
+		while (1)
+		{
+			if (items->type == OPERATOR && items->value == SUB)
+			{
+				currentval *= -1.0f;
+				items++;
+			}
+			if (items->type == NUMBER)
+			{
+				currentval *= items->numvalue;
+			}
+			//else if (items->type == )
+		}
+	}
+	return (result);
+}
+*/
 
 
 
 
 int main()
 {
-	char *hi = strdup("2a * 2 + (2 * [2 - 4]) * 8.42 = 0");
-	char *cpy = hi;
-	char var;
 
-	advance(&hi);
-	
-	printf("- %d\n", check_parentheses(&cpy));
-	printf("%s\n", hi);
-	var = get_variable_char(hi);
-	if (var == -1)
-	{
-		printf("Error: more than one variable was given.\n");
-		return (1);
-	}
-	else
-		printf("Variable: %c\n", var);
-	t_item	*items = typeit(hi);
-
-	if (find_illegal_stuff(items))
-	{
-		free(items);
-		return (1);
-	}
-
-	
-
-
-	typeprinter(items);
 }
 

@@ -52,6 +52,43 @@ void	eliminate_parentheses(t_group_item *target)
 	}
 }
 
+void	eliminate_lonely_parentheses(t_group_item *target)
+{
+	int				items_counter = 0;
+	int				context = 0;
+	t_group_item	*aux = target;
+
+	while (target->type != THEEND)
+	{
+		if (target->type == PARENTHESIS && get_parenthesis_type(target->value) == OPENING)
+		{
+			aux = target + 1;
+			context = 1;
+			items_counter = 0;
+			while (context)
+			{
+				if (aux->type == EXPRESSION)
+					items_counter++;
+				else if (aux->type == PARENTHESIS)
+				{
+					if (get_parenthesis_type(aux->value) == OPENING)
+						context++;
+					else
+						context--;
+				}
+				if (context)
+					aux++;
+			}
+			if (items_counter <= 1)
+			{
+				target->type = NOTHING;
+				aux->type = NOTHING;
+			}
+		}
+		target++;
+	}
+}
+
 t_group_item	*append_to_group(t_group_item *old, t_group_item *new, int size)
 {
 	t_group_item	*result;
@@ -81,7 +118,37 @@ double	power_stacking(t_item **items)
 		return(currentvalue);
 }
 
+void	simplify_inside_parentheses(t_group_item *items)
+{
+	t_group_item	*aux;
+	int				context = 1;
 
+	while (context && items->type != EQUAL)
+	{
+		if (items->type == EXPRESSION)
+		{
+			aux = items;
+			context = 1;
+			while (aux->type != EQUAL && context)
+			{
+				if (aux->type == PARENTHESIS)
+				{
+					if (get_parenthesis_type(aux->value) == OPENING)
+						context++;
+					else
+						context--;
+				}
+				if (aux->type == OPERATOR && (aux + 1)->type == EXPRESSION)
+				
+				aux++;
+			}
+		} 
+		items++;
+	}
+	if (!context)
+		return;
+	
+}
 
 
 t_group_item	*make_groups(t_item **items)
@@ -218,6 +285,10 @@ static void		apply_to_all_members_in_parenthesis(t_group_item multiplier, t_grou
 	}
 }
 
+/*
+*	Starts already inside the expression.
+*	Returns the location right after the closing parenthesis.
+*/
 static t_group_item	*get_parenthesis_end(t_group_item *items)
 {
 	int	relative_scope = 1;
@@ -232,7 +303,7 @@ static t_group_item	*get_parenthesis_end(t_group_item *items)
 				relative_scope--;
 		}
 		else if (items->type == THEEND)
-			error_manager("(FATAL) error finding closgns parenthesis.");
+			error_manager("(FATAL) error finding closing parenthesis.");
 		items++;
 	}
 	return (items);

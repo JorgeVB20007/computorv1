@@ -74,6 +74,7 @@ int		is_parenthesis(char c);
 int		get_parenthesis_type(char c);
 int		is_illegal(char c);
 void	error_manager(const char *reason);
+int		is_exponent_out_of_bounds(t_group_item *items);
 
 t_group_item	*make_groups(t_item **items);
 t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *items);
@@ -81,6 +82,7 @@ t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *item
 t_group_item	*nothingness_cleanup(t_group_item *old);
 void	multiply_expression_by_parenthesis(t_group_item *items);
 void	eliminate_parentheses(t_group_item *target);
+void	eliminate_lonely_parentheses(t_group_item *target);
 void	add_everything_up(t_group_item *items);
 double	*get_equation_values(t_group_item	*items);
 void	apply_final_negatives(t_group_item *items);

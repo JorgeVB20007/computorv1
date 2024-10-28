@@ -44,3 +44,15 @@ void error_manager(const char *reason)
 	dprintf(2, "\033[1;31mError:\033[0m %s\n", reason);
 	exit (1);
 }
+
+int	is_exponent_out_of_bounds(t_group_item *items)
+{
+	while (items->type != THEEND)
+	{
+		if (items->type == EXPRESSION && (items->exponent < 0.0 || items->exponent > 2.0))
+			return (1);
+		items++;
+	}
+
+	return (0);
+}

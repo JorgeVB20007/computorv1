@@ -40,6 +40,13 @@ int main(int argc, char **argv)
 	groupprinter(grouped);
 	printf("\n");
 
+	// eliminate_lonely_parentheses(grouped);
+	// grouped = nothingness_cleanup(grouped);
+
+	// printf("> Eliminated useless parentheses\n  ");
+	// groupprinter(grouped);
+	// printf("\n");
+
 	grouped = merge_multiplication_expression_and_parenthesis(grouped);
 	grouped = nothingness_cleanup(grouped);
 
@@ -70,6 +77,8 @@ int main(int argc, char **argv)
 	printf("> Reducing all expressions\n  ");
 	groupprinter(grouped);
 	printf("\n");
+	if (is_exponent_out_of_bounds(grouped))
+		error_manager("The exponent of an expression is out of bounds.");
 	
 	double	*second_deg_equation = get_equation_values(grouped);
 	free(grouped);

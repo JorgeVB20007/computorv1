@@ -86,6 +86,7 @@ void	eliminate_lonely_parentheses(t_group_item *target);
 void	add_everything_up(t_group_item *items);
 double	*get_equation_values(t_group_item	*items);
 void	apply_final_negatives(t_group_item *items);
+void	merge_expressions_in_parentheses(t_group_item *items);
 
 int	get_second_degree_solutions(double *params);
 double get_second_degree_first_solution(double *params);

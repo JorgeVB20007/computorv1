@@ -373,6 +373,68 @@ static t_group_item	*multiplybyone_safety(t_group_item *items)
 	return (new_items);
 }
 
+/*
+*	Turns `x * (2 + 3)` into `x * (5)`.
+*/
+void	merge_expressions_in_parentheses(t_group_item *items)
+{
+	t_group_item	*aux;
+	t_group_item	*aux2;
+	int				context = 1;
+	int				context2 = 1;
+
+	apply_final_negatives(items);
+
+	while (items->type != THEEND)
+	{
+		if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
+		{
+			aux = items + 1;
+			context = 1;
+			while (context)
+			{
+				if (aux->type == PARENTHESIS)
+				{
+					if (get_parenthesis_type(aux->value) == OPENING)
+					{
+						aux = get_parenthesis_end(aux + 1) - 1;
+					}
+					else
+						context = 0;
+				}
+				else if (aux->type == EXPRESSION)
+				{
+					context2 = 1;
+					aux2 = aux + 1;
+					while (context2)
+					{
+						if (aux2->type == EXPRESSION)
+						{
+							if (aux2->exponent == aux->exponent)
+							{
+								aux->multiplier += aux2->multiplier;
+								aux2->type = NOTHING;
+								(aux2 - 1)->type = NOTHING;
+							}
+
+						}
+						else if (aux2->type == PARENTHESIS && get_parenthesis_type(aux2->value) == OPENING)
+							aux2 = get_parenthesis_end(aux2 + 1) - 1;
+						else if (aux2->type == PARENTHESIS && get_parenthesis_type(aux2->value) == CLOSING)
+							context2 = 0;
+						aux2++;
+					}
+				}
+				aux++;
+			}
+		}
+		items++;
+	}
+}
+
+/*
+*	Turns `2 * expression * 4` into `8 * expression`.
+*/
 t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *items)
 {
 	t_group_item	*prev_expression = NULL;
@@ -438,6 +500,12 @@ void	multiply_expression_by_parenthesis(t_group_item *items)
 		((items + 1)->value == MUL || (items + 1)->value == DIV) && \
 		(items + 2)->type == PARENTHESIS && get_parenthesis_type((items + 2)->value) == OPENING)
 		{
+			if ((items + 1)->value == DIV)
+			{
+// TODO		LEFT HERE vvv
+				//if ((items + 4)->type == PARENTHESIS && get_parenthesis_type((items + 4)->value) == CLOSING)
+
+			}
 			apply_to_all_members_in_parenthesis(*items, items + 3, (items + 1)->value == DIV);
 			items->type = NOTHING;
 			items++;
@@ -463,9 +531,7 @@ void	multiply_expression_by_parenthesis(t_group_item *items)
 // 		if (items_cpy == PARENTHESIS)
 // 		{
 // 			aux_items_cpy = get_parenthesis_end(items_cpy + 1);
-// 			if (aux_items_cpy->type == OPERATOR && \
-// 			(aux_items_cpy->value == MUL || aux_items_cpy->value == DIV) && \
-// 			(aux_items_cpy + 1)->type == PARENTHESIS && get_parenthesis_type((aux_items_cpy + 1)->value) == OPENING)
+// 			if (aux_items_cpy->type == OPERATOR && (aux_items_cpy->value == MUL || aux_items_cpy->value == DIV) && (aux_items_cpy + 1)->type == PARENTHESIS && get_parenthesis_type((aux_items_cpy + 1)->value) == OPENING)
 // 			{
 // 				aux_items_cpy += 2;
 // 			}

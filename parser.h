@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <math.h>
 
 #define PERIOD '.'
 
@@ -67,6 +66,7 @@ void	typeprinter(t_item *types);
 void	type_line_printer(t_item *types);
 void	single_item_printer(t_item *type);
 void	groupprinter(t_group_item *items);
+void	print_group_if_necessary(t_group_item *item, int old_changes, int new_changes);
 void	single_groupprinter(t_group_item item);
 
 int		is_operation(char c);
@@ -82,16 +82,21 @@ t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *item
 t_group_item	*nothingness_cleanup(t_group_item *old);
 void	multiply_expression_by_parenthesis(t_group_item *items);
 void	eliminate_parentheses(t_group_item *target);
-void	eliminate_lonely_parentheses(t_group_item *target);
+int		eliminate_lonely_parentheses(t_group_item *target);
 void	add_everything_up(t_group_item *items);
 double	*get_equation_values(t_group_item	*items);
 void	apply_final_negatives(t_group_item *items);
-void	merge_expressions_in_parentheses(t_group_item *items);
+int		merge_expressions_in_parentheses_sum_sub(t_group_item *items);
+int		merge_expressions_in_parentheses_mul_div(t_group_item *items);
+
 
 int	get_second_degree_solutions(double *params);
 double get_second_degree_first_solution(double *params);
 double get_second_degree_second_solution(double *params);
 
 void	result_formatter(double *params, char variablechar);
+
+double	my_pow(double multiplier, int exponent);
+double	my_sqrt(double number);
 
 #endif

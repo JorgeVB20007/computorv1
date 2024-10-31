@@ -52,11 +52,12 @@ void	eliminate_parentheses(t_group_item *target)
 	}
 }
 
-void	eliminate_lonely_parentheses(t_group_item *target)
+int	eliminate_lonely_parentheses(t_group_item *target)
 {
 	int				items_counter = 0;
 	int				context = 0;
 	t_group_item	*aux = target;
+	int retval = 0;
 
 	while (target->type != THEEND)
 	{
@@ -83,10 +84,12 @@ void	eliminate_lonely_parentheses(t_group_item *target)
 			{
 				target->type = NOTHING;
 				aux->type = NOTHING;
+				retval++;
 			}
 		}
 		target++;
 	}
+	return (retval);
 }
 
 t_group_item	*append_to_group(t_group_item *old, t_group_item *new, int size)
@@ -108,7 +111,7 @@ double	power_stacking(t_item **items)
 		if ((*items + 2)->type == NUMBER)
 		{
 			*items += 2;
-			return (pow(currentvalue, power_stacking(items)));
+			return (my_pow(currentvalue, power_stacking(items)));
 		}
 		else
 			error_manager("An expression other than a number was found after an exponent.");
@@ -376,12 +379,13 @@ static t_group_item	*multiplybyone_safety(t_group_item *items)
 /*
 *	Turns `x * (2 + 3)` into `x * (5)`.
 */
-void	merge_expressions_in_parentheses(t_group_item *items)
+int	merge_expressions_in_parentheses_sum_sub(t_group_item *items)
 {
 	t_group_item	*aux;
 	t_group_item	*aux2;
 	int				context = 1;
 	int				context2 = 1;
+	int				retval = 0;
 
 	apply_final_negatives(items);
 
@@ -408,13 +412,16 @@ void	merge_expressions_in_parentheses(t_group_item *items)
 					aux2 = aux + 1;
 					while (context2)
 					{
-						if (aux2->type == EXPRESSION)
+						if (aux2->type == OPERATOR && (aux2->value == MUL || aux2->value == DIV) && (aux2 + 1)->type == EXPRESSION)
+							aux2++;
+						else if (aux2->type == EXPRESSION && !((aux2 + 1)->type == OPERATOR && ((aux2 + 1)->value == MUL || (aux2 + 1)->value == DIV)))
 						{
 							if (aux2->exponent == aux->exponent)
 							{
 								aux->multiplier += aux2->multiplier;
 								aux2->type = NOTHING;
 								(aux2 - 1)->type = NOTHING;
+								retval++;
 							}
 
 						}
@@ -430,6 +437,99 @@ void	merge_expressions_in_parentheses(t_group_item *items)
 		}
 		items++;
 	}
+	return (retval);
+}
+
+/*
+*	Turns `x * (2 * 3)` into `x * (6)`.
+*/
+int	merge_expressions_in_parentheses_mul_div(t_group_item *items)
+{
+	t_group_item	*aux;
+	t_group_item	*aux2;
+	int				context = 1;
+	int				context2 = 1;
+	int				operation = IDK; 
+	int				retval = 0;
+	int				first = 1;
+
+	apply_final_negatives(items);
+
+	while (items->type != THEEND)
+	{
+		if ((items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING) || first)
+		{
+			printf(">> ");
+			aux = items + !first;
+			single_groupprinter(*aux);
+			printf("\n");
+			context = 1;
+			while (context)
+			{
+				if (aux->type == PARENTHESIS)
+				{
+					if (get_parenthesis_type(aux->value) == OPENING)
+					{
+						aux = get_parenthesis_end(aux + 1) - 1;
+					}
+					else
+						context = 0;
+				}
+				else if (aux->type == EXPRESSION)
+				{
+					context2 = 1;
+					aux2 = aux + 1;
+					while (context2)
+					{
+						if (aux2->type == EXPRESSION)
+						{
+							if (operation == MUL)
+							{
+								aux->multiplier *= aux2->multiplier;
+								aux->exponent += aux2->exponent;
+								aux2->type = NOTHING;
+								(aux2 - 1)->type = NOTHING;
+								retval++;
+							}
+							else if (operation == DIV)
+							{
+								aux->multiplier /= aux2->multiplier;
+								aux->exponent -= aux2->exponent;
+								aux2->type = NOTHING;
+								(aux2 - 1)->type = NOTHING;
+								retval++;
+							}
+							else
+								error_manager("Unknown operation when trying to multiply expressions inside parentheses.");
+
+						}
+						else if (aux2->type == PARENTHESIS && get_parenthesis_type(aux2->value) == OPENING)
+							aux2 = get_parenthesis_end(aux2 + 1) - 1;
+						else if (aux2->type == PARENTHESIS && get_parenthesis_type(aux2->value) == CLOSING)
+							context2 = 0;
+						else if (aux2->type == THEEND || aux2->type == EQUAL)
+							context2 = 0;
+						operation = IDK;
+						if (aux2->type == OPERATOR)
+						{
+							operation = aux2->value;
+							if (operation == SUM || operation == SUB)
+								break;
+						}
+						aux2++;
+					}
+				}
+				else if (aux->type == EQUAL)
+					context = 0;
+				aux++;
+			}
+		}
+		first = 0;
+		if (items->type == EQUAL)
+			first = 1;
+		items++;
+	}
+	return (retval);
 }
 
 /*
@@ -502,8 +602,10 @@ void	multiply_expression_by_parenthesis(t_group_item *items)
 		{
 			if ((items + 1)->value == DIV)
 			{
-// TODO		LEFT HERE vvv
-				//if ((items + 4)->type == PARENTHESIS && get_parenthesis_type((items + 4)->value) == CLOSING)
+				if (!((items + 4)->type == PARENTHESIS && get_parenthesis_type((items + 4)->value) == CLOSING) || ((items + 3)->type == EXPRESSION && (items + 3)->exponent > items->exponent))
+				{
+					error_manager("A division was found that results in variables with negative exponents.");
+				}
 
 			}
 			apply_to_all_members_in_parenthesis(*items, items + 3, (items + 1)->value == DIV);
@@ -613,9 +715,9 @@ int	get_second_degree_solutions(double *params)
 {
 	if (params[2] == 0)
 		return (0);
-	else if (pow(params[1], 2) == 4.0 * params[2] * params[0])
+	else if (my_pow(params[1], 2) == 4.0 * params[2] * params[0])
 		return (1);
-	else if (pow(params[1], 2) < 4.0 * params[2] * params[0])
+	else if (my_pow(params[1], 2) < 4.0 * params[2] * params[0])
 		return (-1);
 	else
 		return (2);
@@ -623,13 +725,13 @@ int	get_second_degree_solutions(double *params)
 
 double get_second_degree_first_solution(double *params)
 {
-	return ((params[1] * -1.0 + sqrtf(pow(params[1], 2.0) - 4 * params[2] * params[0])) / (2.0 * params[2]));
+	return ((params[1] * -1.0 + my_sqrt(my_pow(params[1], 2.0) - 4 * params[2] * params[0])) / (2.0 * params[2]));
 }
 
 
 double get_second_degree_second_solution(double *params)
 {
-	return ((params[1] * -1.0 - sqrtf(pow(params[1], 2.0) - 4 * params[2] * params[0])) / (2.0 * params[2]));
+	return ((params[1] * -1.0 - my_sqrt(my_pow(params[1], 2.0) - 4 * params[2] * params[0])) / (2.0 * params[2]));
 }
 
 

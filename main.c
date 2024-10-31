@@ -1,26 +1,20 @@
 #include "parser.h"
 
+
+
 int main(int argc, char **argv)
 {
-	int	is_stdin_input = argc == 1;
-	char	*line = NULL;
 	char	variablechar = 0;
 	
-	line = argv[0];
 	if (argc > 2)
 		error_manager("Multiple arguments provided.");
-
-	if (!is_stdin_input)
-		line = argv[1];
-	else
-		// line = strdup("(x+1)(x-3) = 42");	// TODO <--- HEY
-		// line = strdup("1 * (x + 1) / x = 42");	// TODO <--- HEY
-		line = strdup("x + x = 0");	// TODO <--- HEY
+	else if (argc < 2)
+		error_manager("No arguments provided.");
 
 
-	printf("> Equation recieved:\n  %s\n\n", line);
+	printf("> Equation recieved:\n  %s\n\n", argv[1]);
 
-	t_item *items = parser(line, &variablechar);
+	t_item *items = parser(argv[1], &variablechar);
 
 	printf("> Equation as types:\n  ");
 	type_line_printer(items);
@@ -43,27 +37,40 @@ int main(int argc, char **argv)
 
 
 
-	eliminate_lonely_parentheses(grouped);
-	grouped = nothingness_cleanup(grouped);
-
-	printf("> Eliminated useless parentheses\n  ");
-	groupprinter(grouped);
-	printf("\n");
-	
-	merge_expressions_in_parentheses(grouped);
-	grouped = nothingness_cleanup(grouped);
 
 
+	printf("> Eliminating redundant parentheses and solving basic operations\n");
+
+	int changes_made = 1;
+	int prev_changes;
+	while (changes_made)
+	{
+		changes_made = 0;
+		prev_changes = 0;
+
+		changes_made += eliminate_lonely_parentheses(grouped);
+		grouped = nothingness_cleanup(grouped);
+		print_group_if_necessary(grouped, changes_made, prev_changes);
+		prev_changes = changes_made;
 
 
-	printf("> Operated on expressions inside parentheses\n  ");
-	groupprinter(grouped);
-	printf("\n");
+		changes_made += merge_expressions_in_parentheses_mul_div(grouped);
+		grouped = nothingness_cleanup(grouped);
+		print_group_if_necessary(grouped, changes_made, prev_changes);
+		prev_changes = changes_made;
+
+		changes_made += merge_expressions_in_parentheses_sum_sub(grouped);
+		grouped = nothingness_cleanup(grouped);
+		print_group_if_necessary(grouped, changes_made, prev_changes);
+		prev_changes = changes_made;
+	}
+
+
 
 	grouped = merge_multiplication_expression_and_parenthesis(grouped);
 	grouped = nothingness_cleanup(grouped);
 
-	printf("> Merged expressions that multiplied/divided each other\n  ");
+	printf("\n> Merged expressions that multiplied/divided each other\n  ");
 	groupprinter(grouped);
 	printf("\n");
 	
@@ -87,6 +94,7 @@ int main(int argc, char **argv)
 
 	add_everything_up(grouped);
 	grouped = nothingness_cleanup(grouped);
+////	last_operations(grouped);
 	apply_final_negatives(grouped);
 
 	

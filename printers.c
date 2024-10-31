@@ -170,6 +170,15 @@ void	groupprinter(t_group_item *items)
 	printf("\n");
 }
 
+void	print_group_if_necessary(t_group_item *item, int old_changes, int new_changes)
+{
+	if (old_changes != new_changes)
+	{
+		printf("  ");
+		groupprinter(item);
+	}
+}
+
 void	single_groupprinter(t_group_item item)
 {
 	if (item.type == UNKNOWN)

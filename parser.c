@@ -167,6 +167,7 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: WTF is this char?? --> %c <--.\n", *input);
+			exit (1);
 			return (NULL);
 		}
 		else
@@ -174,12 +175,15 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: An error ocurred when trying to parse the char %c.\n", *input);
+			exit(1);
 			return (NULL);
 		}
 		retval = realloc(retval, sizeof(t_item) * ++size);
 		memcpy(&(retval[size - 1]), &toadd, sizeof(t_item));
 		input++;
 	}
+	if (!equalised)
+		error_manager("No equal sign (=) found.");
 
 	toadd.numvalue = 0.0;
 	toadd.value = 0;
@@ -376,3 +380,8 @@ t_item *parser(char *line, char *variablechar)
 	}
 	return (items);
 }
+
+// void	check_equal_validity(t_group_item *items)
+// {
+
+// }

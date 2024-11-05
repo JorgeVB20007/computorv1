@@ -46,14 +46,23 @@ static void	zero_degree_result(double *params)
 
 void	result_formatter(double *params, char variablechar)
 {
-	printf("> Final equation:\n  ");
+	printf("> Final equation \033[1m");
 
 	if (params[2] == 0.0 && params[1] == 0.0)
+	{
+		printf("(0th degree)\033[0m:\n  ");
 		zero_degree_result(params);
+	}
 	else if (params[2] == 0.0)
+	{
+		printf("(1st degree):\033[0m\n  ");
 		first_degree_result(params, variablechar);
+	}
 	else
+	{
+		printf("(2nd degree):\033[0m\n  ");
 		second_degree_result(params, variablechar);
+	}
 
 
 

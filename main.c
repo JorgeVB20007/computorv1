@@ -23,23 +23,23 @@ int main(int argc, char **argv)
 	make_negatives(items);
 	t_item *no_mult = append_multiplications(items);
 
-	printf("> Formed negative numbers and assumed hidden multiplications\n  ");
+	printf("> Formed negative numbers and assumed hidden multiplications \033[3;90m(1 - 5x -> 1 + -5 * x)\033[0m\n  ");
 	type_line_printer(no_mult);
 	printf("\n");
 
 
 	t_group_item	*grouped = make_groups(&no_mult);
 
-	printf("> Numbers and operations merged represented as single expressions\n  ");
+	printf("> Numbers and operations merged represented as single expressions \033[3;90m(5 * x -> 5 times a variable)\033[0m\n  ");
 	groupprinter(grouped);
 	printf("\n");
 
+	free(items);
 
 
 
 
-
-	printf("> Eliminating redundant parentheses and solving basic operations\n");
+	printf("> Eliminating redundant parentheses and solving basic operations \033[3;90m(5 * 3 - [4] -> 5 * 3 - 4 -> 15 - 4 -> 11)\033[0m\n");
 
 	int changes_made = 1;
 	int prev_changes;
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	grouped = merge_multiplication_expression_and_parenthesis(grouped);
 	grouped = nothingness_cleanup(grouped);
 
-	printf("\n> Merged expressions that multiplied/divided each other\n  ");
+	printf("\n> Merged expressions that multiplied/divided each other \033[3;90m(3 * [expression] * 2 -> 6 * [expression])\033[0m\n  ");
 	groupprinter(grouped);
 	printf("\n");
 	
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	grouped = nothingness_cleanup(grouped);
 
 
-	printf("> Merged expressions that multiplied/divided others inside parentheses\n  ");
+	printf("> Merged expressions that multiplied/divided others inside parentheses \033[3;90m(5x * [x + 2] -> 5x^2 + 10x)\033[0m\n  ");
 	groupprinter(grouped);
 	printf("\n");
 
@@ -109,5 +109,5 @@ int main(int argc, char **argv)
 	free(grouped);
 
 	result_formatter(second_deg_equation, variablechar);
-
+	free(second_deg_equation);
 }

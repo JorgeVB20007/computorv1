@@ -193,21 +193,6 @@ t_item *typeit(char *input)
 	return (retval);
 }
 
-// static int are_there_parentheses(const t_item *items)
-// {
-// 	while (items->type != THEEND)
-// 	{
-// 		if (items->type == PARENTHESIS)
-// 			return (1);
-// 		items++;
-// 	}
-// 	return (0);
-// }
-
-// static t_item *simplify(t_item *thelong)
-// {
-	
-// }
 
 /*
 *	0 = GOOD
@@ -241,7 +226,7 @@ int find_illegal_stuff(t_item *items)
 		}
 		else if (items->type == NUMBER && (items + 1)->type == NUMBER)
 		{
-			dprintf(2, "Error: Two consecutive numbers found (%d and %d).\n", items->value, (items + 1)->value);
+			dprintf(2, "Error: Two consecutive numbers found (%g and %g).\n", items->numvalue, (items + 1)->numvalue);
 			return (1);
 		}
 		items++;

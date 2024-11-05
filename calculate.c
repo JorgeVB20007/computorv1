@@ -459,10 +459,7 @@ int	merge_expressions_in_parentheses_mul_div(t_group_item *items)
 	{
 		if ((items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING) || first)
 		{
-			printf(">> ");
 			aux = items + !first;
-			single_groupprinter(*aux);
-			printf("\n");
 			context = 1;
 			while (context)
 			{
@@ -483,6 +480,8 @@ int	merge_expressions_in_parentheses_mul_div(t_group_item *items)
 					{
 						if (aux2->type == EXPRESSION)
 						{
+							if (aux->exponent == 0.0)
+								aux->value = aux2->value;
 							if (operation == MUL)
 							{
 								aux->multiplier *= aux2->multiplier;
@@ -493,6 +492,8 @@ int	merge_expressions_in_parentheses_mul_div(t_group_item *items)
 							}
 							else if (operation == DIV)
 							{
+								if (aux2->multiplier == 0.0)
+									error_manager("A division by 0 was encountered.");
 								aux->multiplier /= aux2->multiplier;
 								aux->exponent -= aux2->exponent;
 								aux2->type = NOTHING;
@@ -519,7 +520,7 @@ int	merge_expressions_in_parentheses_mul_div(t_group_item *items)
 						aux2++;
 					}
 				}
-				else if (aux->type == EQUAL)
+				else if (aux->type == EQUAL || aux->type == THEEND)
 					context = 0;
 				aux++;
 			}
@@ -621,6 +622,101 @@ void	multiply_expression_by_parenthesis(t_group_item *items)
 	}
 
 }
+
+t_group_item	*create_equation_copy(t_group_item *orig)
+{
+	t_group_item	*cpy = orig;
+	t_group_item	*result;
+	int				size = 1;
+
+	while ((cpy++)->type != THEEND)
+		size++;
+	result = calloc(size, sizeof(t_group_item));
+	if (!result)
+		error_manager("calloc failed.");
+	memcpy(result, orig, size);
+	return (result);
+}
+
+
+//TODO		------- LEFT IT HERE -------
+//			(x + 1)(x - 2) -> (x^2 + -2x + x + -2)
+//!	PROBLEM	((x + 1) * (x + 2)) * (x + 1)   (maybe?)
+
+t_group_item	*multiply_parentheses_by_themselves(t_group_item *items)
+{
+	t_group_item	*aux;
+	t_group_item	*aux2;
+	t_group_item	*aux2_iter;
+	t_group_item	*copy = create_equation_copy(items);
+	t_group_item	*auxcopy;
+	int				context;
+	int				context2;
+	int				is_negative;
+
+	aux = items;
+	auxcopy = copy;
+	while (aux->type != THEEND)
+	{
+		if (aux->type == PARENTHESIS && get_parenthesis_type(aux->value) == OPENING)
+		{
+			aux2 = get_parenthesis_end(aux + 1);
+			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value == CLOSING))
+			{
+				aux++;
+				aux2 += 2;
+				auxcopy++;
+				context = 1;
+				while (context)
+				{
+					if (aux->type == PARENTHESIS)
+					{
+						if (get_parenthesis_type(aux->value) == OPENING)
+							context++;
+						else
+							context--;
+					}
+					else if (aux->type == EXPRESSION)
+					{
+						aux2_iter = aux2;
+						context2 = 1;
+						is_negative = 0;
+						while (context2)
+						{
+							if (aux2_iter->type == PARENTHESIS)
+							{
+								if (get_parenthesis_type(aux2_iter->value) == OPENING)
+									context++;
+								else
+									context--;
+							}
+							else if (aux2_iter->type == OPERATOR && aux2_iter->value == SUB)
+								is_negative = 1;
+							else if (aux2_iter->type == EXPRESSION)
+							{
+								auxcopy->exponent = aux->exponent + aux2_iter->exponent;
+								auxcopy->multiplier = aux->multiplier * aux2_iter->multiplier * (is_negative * -2 + 1);
+								auxcopy++;
+								auxcopy->type = OPERATOR;
+								auxcopy->value = SUM;
+								auxcopy++;
+								is_negative = 0;
+							}
+							else
+								is_negative = 0;
+							aux2_iter++;
+						}
+					}
+				}
+			}
+		}
+		aux++;
+		auxcopy++;
+	}
+	free(items);
+	return (copy);
+}
+
 
 // t_group_item	product_of_long_expressions(t_group_item *items)
 // {

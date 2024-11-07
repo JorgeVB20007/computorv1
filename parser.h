@@ -66,6 +66,7 @@ void	typeprinter(t_item *types);
 void	type_line_printer(t_item *types);
 void	single_item_printer(t_item *type);
 void	groupprinter(t_group_item *items);
+void	bugprinter(t_group_item *items);
 void	print_group_if_necessary(t_group_item *item, int old_changes, int new_changes);
 void	single_groupprinter(t_group_item item);
 

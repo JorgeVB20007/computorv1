@@ -79,10 +79,20 @@ int main(int argc, char **argv)
 	multiply_expression_by_parenthesis(grouped);
 	grouped = nothingness_cleanup(grouped);
 
-
 	printf("> Merged expressions that multiplied/divided others inside parentheses \033[3;90m(5x * [x + 2] -> 5x^2 + 10x)\033[0m\n  ");
 	groupprinter(grouped);
 	printf("\n");
+
+
+
+	grouped = multiply_parentheses_by_themselves(grouped);
+	grouped = nothingness_cleanup(grouped);
+
+	printf("> Multiplied long expressions in parentheses \033[3;90m([x + 1] * [x - 2] -> [x^2 - x - 2])\033[0m\n  ");
+	groupprinter(grouped);
+	printf("\n");
+
+
 
 	eliminate_parentheses(grouped);
 	grouped = nothingness_cleanup(grouped);

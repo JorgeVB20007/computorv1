@@ -170,6 +170,53 @@ void	groupprinter(t_group_item *items)
 	printf("\n");
 }
 
+void	bugprinter(t_group_item *items)
+{
+	int	idx = 0;
+
+	while (items[idx].type != THEEND)
+	{
+		printf("> ");
+		if (items[idx].type == UNKNOWN)
+			printf("\033[0;90m(unknown) ");
+		else if (items[idx].type == NOTHING)
+			printf("\033[0;90m(nothing) ");
+		else if (items[idx].type == NUMBER)
+			printf("\033[0;31m(number) ");
+		else if (items[idx].type == VARIABLE)
+			printf("\033[0;31m(variable) ");
+		else if (items[idx].type == PARENTHESIS)
+		{
+			printf("\033[0;34m");
+			if (get_parenthesis_type(items[idx].value) == OPENING)
+				printf("(");
+			else
+				printf(")");
+		}
+		else if (items[idx].type == OPERATOR)
+			printf("\033[0;32m%c", operator_symbol(items[idx].value));
+		else if (items[idx].type == EQUAL)
+			printf("\033[1;36m=");
+		else if (items[idx].type == EXPRESSION)
+		{
+			printf("\033[0;33m");
+			if (items[idx].multiplier == -1.0 && items[idx].exponent != 0.0)
+				printf("-");
+			else if (items[idx].multiplier != 1.0)
+				printf("%g", items[idx].multiplier);
+			else if (items[idx].exponent == 0.0)
+				printf("%g", items[idx].multiplier);
+			if (items[idx].exponent > 1.0 || items[idx].exponent <= -1.0)
+				printf("%c^%g", items[idx].value, items[idx].exponent);
+			else if (items[idx].exponent == 1.0)
+				printf("%c", items[idx].value);
+		}
+		printf("\033[0m\n");
+		idx++;
+	}
+	printf("\n");
+}
+
 void	print_group_if_necessary(t_group_item *item, int old_changes, int new_changes)
 {
 	if (old_changes != new_changes)

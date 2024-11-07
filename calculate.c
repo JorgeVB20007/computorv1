@@ -634,7 +634,7 @@ t_group_item	*create_equation_copy(t_group_item *orig)
 	result = calloc(size, sizeof(t_group_item));
 	if (!result)
 		error_manager("calloc failed.");
-	memcpy(result, orig, size);
+//	memcpy(result, orig, size * sizeof(t_group_item));
 	return (result);
 }
 
@@ -652,20 +652,23 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items)
 	t_group_item	*auxcopy;
 	int				context;
 	int				context2;
-	int				is_negative;
 
 	aux = items;
 	auxcopy = copy;
 	while (aux->type != THEEND)
 	{
+		auxcopy->exponent = aux->exponent;
+		auxcopy->multiplier = aux->multiplier;
+		auxcopy->type = aux->type;
+		auxcopy->value = aux->value;
+		auxcopy++;
 		if (aux->type == PARENTHESIS && get_parenthesis_type(aux->value) == OPENING)
 		{
 			aux2 = get_parenthesis_end(aux + 1);
-			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value == CLOSING))
+			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING)
 			{
 				aux++;
 				aux2 += 2;
-				auxcopy++;
 				context = 1;
 				while (context)
 				{
@@ -680,39 +683,43 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items)
 					{
 						aux2_iter = aux2;
 						context2 = 1;
-						is_negative = 0;
 						while (context2)
 						{
 							if (aux2_iter->type == PARENTHESIS)
 							{
 								if (get_parenthesis_type(aux2_iter->value) == OPENING)
-									context++;
+									context2++;
 								else
-									context--;
+									context2--;
 							}
-							else if (aux2_iter->type == OPERATOR && aux2_iter->value == SUB)
-								is_negative = 1;
 							else if (aux2_iter->type == EXPRESSION)
 							{
+								auxcopy->type = EXPRESSION;
+								if (aux->exponent > 0)
+									auxcopy->value = aux->value;
+								else
+									auxcopy->value = aux2_iter->value;
 								auxcopy->exponent = aux->exponent + aux2_iter->exponent;
-								auxcopy->multiplier = aux->multiplier * aux2_iter->multiplier * (is_negative * -2 + 1);
+								auxcopy->multiplier = aux->multiplier * aux2_iter->multiplier;
 								auxcopy++;
-								auxcopy->type = OPERATOR;
-								auxcopy->value = SUM;
-								auxcopy++;
-								is_negative = 0;
+								if (!((aux2_iter + 1)->type == PARENTHESIS && (aux + 1)->type == PARENTHESIS))
+								{
+									auxcopy->type = OPERATOR;
+									auxcopy->value = SUM;
+									auxcopy++;
+								}
 							}
-							else
-								is_negative = 0;
 							aux2_iter++;
 						}
 					}
+					aux++;
 				}
+				aux = get_parenthesis_end(aux2) - 2;
 			}
 		}
 		aux++;
-		auxcopy++;
 	}
+	auxcopy->type = THEEND;
 	free(items);
 	return (copy);
 }

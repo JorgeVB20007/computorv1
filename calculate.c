@@ -327,7 +327,13 @@ static t_group_item	*multiplybyone_safety(t_group_item *items)
 	itemscpy = items;
 	while (itemscpy->type != THEEND)
 	{
-		if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
+		if (itemscpy->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == CLOSING && \
+		(itemscpy + 1)->type == OPERATOR && (itemscpy + 1)->value == DIV && \
+		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type((itemscpy + 2)->value) == OPENING)
+		{
+			itemscpy += 2;
+		}
+		else if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
 		((itemscpy + 1)->value == MUL || (itemscpy + 1)->value == DIV) && \
 		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
 		{
@@ -346,7 +352,15 @@ static t_group_item	*multiplybyone_safety(t_group_item *items)
 
 	while (itemscpy->type != THEEND)
 	{
-		if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
+		if (itemscpy->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == CLOSING && \
+		(itemscpy + 1)->type == OPERATOR && (itemscpy + 1)->value == DIV && \
+		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type((itemscpy + 2)->value) == OPENING)
+		{
+			memcpy(new_itemscpy, itemscpy, sizeof(t_group_item) * 3);
+			itemscpy += 2;
+			new_itemscpy += 2;
+		}
+		else if (itemscpy->type == EXPRESSION && (itemscpy + 1)->type == OPERATOR && \
 		((itemscpy + 1)->value == MUL || (itemscpy + 1)->value == DIV) && \
 		(itemscpy + 2)->type == PARENTHESIS && get_parenthesis_type(itemscpy->value) == OPENING)
 		{
@@ -421,6 +435,8 @@ int	merge_expressions_in_parentheses_sum_sub(t_group_item *items)
 								aux->multiplier += aux2->multiplier;
 								aux2->type = NOTHING;
 								(aux2 - 1)->type = NOTHING;
+								if (aux->multiplier == 0.0)
+									aux->exponent = 0.0;
 								retval++;
 							}
 
@@ -547,6 +563,7 @@ t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *item
 
 	while (items->type != THEEND)
 	{
+//		groupprinter(items);
 		if (items->type == EXPRESSION && (items + 1)->type == OPERATOR && ((items + 1)->value == MUL || (items + 1)->value == DIV))
 		{
 			prev_expression = items;
@@ -593,6 +610,125 @@ void	apply_final_negatives(t_group_item *items)
 	}
 }
 
+void	sort_items(t_group_item *items)
+{
+	t_group_item	*aux;
+	int				context1 = 0;
+	int				context2 = 0;
+	while (items->type != THEEND)
+	{
+		if (items->type == PARENTHESIS)
+		{
+			if (get_parenthesis_type(items->value) == OPENING)
+				context1++;
+			else
+				context1--;
+		}
+		if (items->type == EXPRESSION)
+		{
+			aux = items;
+			context2 = context1;
+			while (context1 <= context2 && aux->type != THEEND && aux->type != EQUAL)
+			{
+				if (aux->type == PARENTHESIS)
+				{
+					if (get_parenthesis_type(aux->value) == OPENING)
+						context2++;
+					else
+						context2--;
+				}
+				else if (aux->type == EXPRESSION && context2 == context1)
+				{
+					if (items->exponent < aux->exponent)
+					{
+						double temp;
+
+						temp = items->exponent;
+						items->exponent = aux->exponent;
+						aux->exponent = temp;
+
+						temp = items->multiplier;
+						items->multiplier = aux->multiplier;
+						aux->multiplier = temp;
+
+						items->value = aux->value;
+					}
+				}
+				aux++;
+			}
+		}
+		items++;
+	}
+}
+
+static double	get_multiplier_for_degree_in_group(t_group_item *items, double degree)
+{
+	int	context = 1;
+
+	while (items->type != THEEND && items->type != EQUAL && context)
+	{
+		if (items->type == PARENTHESIS)
+		{
+			if (get_parenthesis_type(items->value) == OPENING)
+				context++;
+			else
+				context--;
+		}	
+		else if (items->type == EXPRESSION)
+		{
+			if (items->exponent == degree)
+				return (items->multiplier);
+		}
+		items++;
+	}
+	return (0.0);
+}
+
+void	check_and_fix_illegal_divisions(t_group_item *items)
+{
+	t_group_item *aux = items;
+	t_group_item *aux2 = items;
+	t_group_item *aux_other = items;
+
+	while (aux->type != THEEND)
+	{
+		if (aux->type == PARENTHESIS)
+		{
+			if (get_parenthesis_type(aux->value) == OPENING)
+			{
+				aux_other = get_parenthesis_end(aux + 1);
+				if (aux_other->type == OPERATOR && aux_other->value == DIV && (aux_other + 1)->type == PARENTHESIS && get_parenthesis_type((aux_other + 1)->value) == OPENING)
+				{
+					aux2 = aux + 1;
+					aux_other += 2;
+
+					while (!(aux2->type == PARENTHESIS && get_parenthesis_type(aux2->value) == CLOSING))
+					{
+						if (aux2->type == EXPRESSION)
+						{
+							if (get_multiplier_for_degree_in_group(aux_other, aux2->exponent) != aux2->multiplier)
+								error_manager("Divisions between expressions in parentheses (such as `(x + 1) / (x - 2)`) are not supported.");
+						}
+						aux2++;
+					}
+					aux_other = get_parenthesis_end(aux_other);
+					aux2 = aux;
+					aux2->type = EXPRESSION;
+					aux2->exponent = 0.0;
+					aux2->multiplier = 1.0;
+					aux2++;
+					while (aux2 != aux_other)
+					{
+						aux2->type = NOTHING;
+						aux2++;
+					}
+				}
+			}
+		}
+		aux++;
+	}
+}
+
 void	multiply_expression_by_parenthesis(t_group_item *items)
 {
 	while (items->type != THEEND)
@@ -634,16 +770,40 @@ t_group_item	*create_equation_copy(t_group_item *orig)
 	result = calloc(size, sizeof(t_group_item));
 	if (!result)
 		error_manager("calloc failed.");
-//	memcpy(result, orig, size * sizeof(t_group_item));
 	return (result);
+}
+
+// Don't include the first parenthesis.
+static int	has_multiplication_of_parentheses(t_group_item *items)
+{
+	int context = 0;
+	t_group_item *aux;
+	while (items->type != THEEND && items->type != EQUAL && context >= 0)
+	{
+		if (items->type == PARENTHESIS)
+		{
+			if (get_parenthesis_type(items->value) == OPENING)
+			{
+				context++;
+				aux = get_parenthesis_end(items + 1);
+				if (aux->type == OPERATOR && aux->value == MUL && (aux + 1)->type == PARENTHESIS && get_parenthesis_type((aux + 1)->value) == OPENING)
+				{
+					return (1);
+				}
+			}
+			else
+				context--;
+		}
+		items++;
+	}
+	return (0);
 }
 
 
 //TODO		------- LEFT IT HERE -------
 //			(x + 1)(x - 2) -> (x^2 + -2x + x + -2)
 //!	PROBLEM	((x + 1) * (x + 2)) * (x + 1)   (maybe?)
-
-t_group_item	*multiply_parentheses_by_themselves(t_group_item *items)
+t_group_item	*multiply_parentheses_by_themselves(t_group_item *items, int *something_changed)
 {
 	t_group_item	*aux;
 	t_group_item	*aux2;
@@ -665,8 +825,9 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items)
 		if (aux->type == PARENTHESIS && get_parenthesis_type(aux->value) == OPENING)
 		{
 			aux2 = get_parenthesis_end(aux + 1);
-			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING)
-			{
+			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING && !(has_multiplication_of_parentheses(aux + 1) || has_multiplication_of_parentheses(aux2 + 2)))
+			{				
+				*something_changed = 1;
 				aux++;
 				aux2 += 2;
 				context = 1;

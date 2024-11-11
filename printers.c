@@ -159,6 +159,8 @@ void	groupprinter(t_group_item *items)
 				printf("%g", items[idx].multiplier);
 			else if (items[idx].exponent == 0.0)
 				printf("%g", items[idx].multiplier);
+			if (items[idx].multiplier == 0.0)
+				printf("\033[2m");
 			if (items[idx].exponent > 1.0 || items[idx].exponent <= -1.0)
 				printf("%c^%g", items[idx].value, items[idx].exponent);
 			else if (items[idx].exponent == 1.0)

@@ -82,7 +82,7 @@ t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *item
 //void			apply_operation_back(t_group_item *items);
 t_group_item	*nothingness_cleanup(t_group_item *old);
 void			multiply_expression_by_parenthesis(t_group_item *items);
-t_group_item	*multiply_parentheses_by_themselves(t_group_item *items);
+t_group_item	*multiply_parentheses_by_themselves(t_group_item *items, int *something_changed);
 void			eliminate_parentheses(t_group_item *target);
 int				eliminate_lonely_parentheses(t_group_item *target);
 void			add_everything_up(t_group_item *items);
@@ -90,6 +90,8 @@ double			*get_equation_values(t_group_item	*items);
 void			apply_final_negatives(t_group_item *items);
 int				merge_expressions_in_parentheses_sum_sub(t_group_item *items);
 int				merge_expressions_in_parentheses_mul_div(t_group_item *items);
+void			sort_items(t_group_item *items);
+void	check_and_fix_illegal_divisions(t_group_item *items);
 
 
 int	get_second_degree_solutions(double *params);

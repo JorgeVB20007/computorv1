@@ -3,7 +3,8 @@
 t_group_item	*grouped_item(t_item *item)
 {
 	t_group_item	*result = malloc(sizeof(t_group_item));
-
+	if (!result)
+		error_manager("Malloc failed\n");
 	result->type = item->type;
 	result->value = item->value;
 	result->multiplier = 0.0;
@@ -27,6 +28,8 @@ t_group_item	*nothingness_cleanup(t_group_item *old)
 	}
 	aux = old;
 	new = malloc(sizeof(t_group_item) * new_size);
+	if (!new)
+		error_manager("Malloc failed!");
 	new_aux = new;
 	while (aux->type != THEEND)
 	{
@@ -97,6 +100,8 @@ t_group_item	*append_to_group(t_group_item *old, t_group_item *new, int size)
 	t_group_item	*result;
 
 	result = realloc(old, (size + 1) * sizeof(t_group_item));
+	if (!result)
+		error_manager("Realloc failed!");
 	memcpy(&(result[size]), new, sizeof(t_group_item));
 	free(new);
 	return (result);
@@ -172,6 +177,8 @@ t_group_item	*make_groups(t_item **items)
 		else if ((*items)->type == NUMBER || (*items)->type == VARIABLE)
 		{
 			result = realloc(result, sizeof(t_group_item) * (size + 1));
+			if (!result)
+				error_manager("Realloc failed!");
 			result[size].type = EXPRESSION;
 			result[size].exponent = 0.0;
 			result[size].multiplier = 1.0;
@@ -234,6 +241,8 @@ t_group_item	*make_groups(t_item **items)
 		}
 	}
 	result = realloc(result, sizeof(t_group_item) * (size + 1));
+	if (!result)
+		error_manager("Realloc failed!");
 	result[size].type = THEEND;
 	return (result);
 }
@@ -348,6 +357,8 @@ static t_group_item	*multiplybyone_safety(t_group_item *items)
 
 	itemscpy = items;
 	new_items = calloc(sizeof(t_group_item), size);
+	if (!new_items)
+		error_manager("Calloc failed!");
 	new_itemscpy = new_items;
 
 	while (itemscpy->type != THEEND)
@@ -563,7 +574,6 @@ t_group_item	*merge_multiplication_expression_and_parenthesis(t_group_item *item
 
 	while (items->type != THEEND)
 	{
-//		groupprinter(items);
 		if (items->type == EXPRESSION && (items + 1)->type == OPERATOR && ((items + 1)->value == MUL || (items + 1)->value == DIV))
 		{
 			prev_expression = items;
@@ -684,7 +694,7 @@ static double	get_multiplier_for_degree_in_group(t_group_item *items, double deg
 	return (0.0);
 }
 
-void	check_and_fix_illegal_divisions(t_group_item *items)
+void	check_and_fix_illegal_divisions(t_group_item *items, int *something_changed)
 {
 	t_group_item *aux = items;
 	t_group_item *aux2 = items;
@@ -711,6 +721,7 @@ void	check_and_fix_illegal_divisions(t_group_item *items)
 						}
 						aux2++;
 					}
+					(*something_changed)++;
 					aux_other = get_parenthesis_end(aux_other);
 					aux2 = aux;
 					aux2->type = EXPRESSION;
@@ -763,18 +774,25 @@ t_group_item	*create_equation_copy(t_group_item *orig)
 {
 	t_group_item	*cpy = orig;
 	t_group_item	*result;
+	t_group_item	*result_ptr;
 	int				size = 1;
 
 	while ((cpy++)->type != THEEND)
 		size++;
 	result = calloc(size, sizeof(t_group_item));
+	result_ptr = result;
 	if (!result)
-		error_manager("calloc failed.");
+		error_manager("Calloc failed!");
+	while (size--)
+	{
+		result_ptr->type = THEEND;
+		result_ptr++;
+	}
 	return (result);
 }
 
 // Don't include the first parenthesis.
-static int	has_multiplication_of_parentheses(t_group_item *items)
+static int	has_mul_or_div_of_parentheses(t_group_item *items)
 {
 	int context = 0;
 	t_group_item *aux;
@@ -786,7 +804,7 @@ static int	has_multiplication_of_parentheses(t_group_item *items)
 			{
 				context++;
 				aux = get_parenthesis_end(items + 1);
-				if (aux->type == OPERATOR && aux->value == MUL && (aux + 1)->type == PARENTHESIS && get_parenthesis_type((aux + 1)->value) == OPENING)
+				if (aux->type == OPERATOR && (aux->value == MUL || aux->value == DIV) && (aux + 1)->type == PARENTHESIS && get_parenthesis_type((aux + 1)->value) == OPENING)
 				{
 					return (1);
 				}
@@ -825,7 +843,7 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items, int *somet
 		if (aux->type == PARENTHESIS && get_parenthesis_type(aux->value) == OPENING)
 		{
 			aux2 = get_parenthesis_end(aux + 1);
-			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING && !(has_multiplication_of_parentheses(aux + 1) || has_multiplication_of_parentheses(aux2 + 2)))
+			if (aux2->type == OPERATOR && aux2->value == MUL && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING && !(has_mul_or_div_of_parentheses(aux + 1) || has_mul_or_div_of_parentheses(aux2 + 2)))
 			{				
 				*something_changed = 1;
 				aux++;
@@ -877,6 +895,20 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items, int *somet
 				}
 				aux = get_parenthesis_end(aux2) - 2;
 			}
+			else if (aux2->type == OPERATOR && aux2->value == DIV && (aux2 + 1)->type == PARENTHESIS && get_parenthesis_type((aux2 + 1)->value) == OPENING)
+			{
+				aux++;
+				while (aux != get_parenthesis_end(aux2))
+				{
+					auxcopy->exponent = aux->exponent;
+					auxcopy->multiplier = aux->multiplier;
+					auxcopy->type = aux->type;
+					auxcopy->value = aux->value;
+					aux++;
+					auxcopy++;
+				}
+				aux--;
+			}
 		}
 		aux++;
 	}
@@ -885,26 +917,6 @@ t_group_item	*multiply_parentheses_by_themselves(t_group_item *items, int *somet
 	return (copy);
 }
 
-
-// t_group_item	product_of_long_expressions(t_group_item *items)
-// {
-// 	t_group_item	*items_cpy = items;
-// 	t_group_item	*aux_items_cpy = items;
-// 	t_group_item	*left
-
-// 	while (items_cpy->type != THEEND)
-// 	{
-// 		if (items_cpy == PARENTHESIS)
-// 		{
-// 			aux_items_cpy = get_parenthesis_end(items_cpy + 1);
-// 			if (aux_items_cpy->type == OPERATOR && (aux_items_cpy->value == MUL || aux_items_cpy->value == DIV) && (aux_items_cpy + 1)->type == PARENTHESIS && get_parenthesis_type((aux_items_cpy + 1)->value) == OPENING)
-// 			{
-// 				aux_items_cpy += 2;
-// 			}
-// 		}
-// 		items_cpy++;
-// 	}
-// }
 
 
 void	add_everything_up(t_group_item *items)
@@ -949,6 +961,8 @@ double	*get_equation_values(t_group_item	*items)
 	t_group_item	*items_aux = items;
 	int				passed_equal;
 
+	if (!result)
+		error_manager("Calloc failed!");
 	while (searching_degree >= 0)
 	{
 		passed_equal = 0;

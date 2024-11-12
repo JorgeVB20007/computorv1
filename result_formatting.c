@@ -27,7 +27,8 @@ static void	first_degree_result(double *params, char variablechar)
 {
 	printf("%g%c + %g = 0  -->  ", params[1], variablechar, params[0]);
 	printf("%g%c = %g \n\n", params[1], variablechar, -1.0 * params[0]);
-	printf("> Divided both sides by %g.\n\n", params[1]);
+	if (params[1] != 1.0)
+		printf("> Divided both sides by %g.\n\n", params[1]);
 	printf("> Solution:\n");
 	printf("\033[1m--- %c = %g ---\033[0m\n", variablechar, -1 * params[0] / params[1]);
 }

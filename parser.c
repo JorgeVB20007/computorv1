@@ -167,7 +167,7 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: WTF is this char?? --> %c <--.\n", *input);
-			exit (1);
+			systemexit(1);
 			return (NULL);
 		}
 		else
@@ -175,10 +175,12 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: An error ocurred when trying to parse the char %c.\n", *input);
-			exit(1);
+			systemexit(1);
 			return (NULL);
 		}
 		retval = realloc(retval, sizeof(t_item) * ++size);
+		if (!retval)
+			error_manager("Realloc failed!");
 		memcpy(&(retval[size - 1]), &toadd, sizeof(t_item));
 		input++;
 	}
@@ -189,6 +191,8 @@ t_item *typeit(char *input)
 	toadd.value = 0;
 	toadd.type = THEEND;
 	retval = realloc(retval, sizeof(t_item) * ++size);
+	if (!retval)
+		error_manager("Realloc failed!");
 	memcpy(&(retval[size - 1]), &toadd, sizeof(t_item));
 	return (retval);
 }
@@ -310,6 +314,8 @@ t_item *append_multiplications(t_item *items)
 		if (items->type == OPERATOR || items->type == EQUAL)
 		{
 			result = realloc(result, sizeof(t_item) * (size + 1));
+			if (!result)
+				error_manager("Realloc failed!");
 
 			memcpy(&(result[size]), items, sizeof(t_item));
 			size++;
@@ -319,6 +325,8 @@ t_item *append_multiplications(t_item *items)
 			if ((items + 1)->type == NUMBER || (items + 1)->type == VARIABLE || ((items + 1)->type == PARENTHESIS && get_parenthesis_type((items + 1)->value) == OPENING))
 			{
 				result = realloc(result, sizeof(t_item) * (size + 2));
+				if (!result)
+					error_manager("Realloc failed!");
 				memcpy(&(result[size]), items, sizeof(t_item));
 				result[size + 1].type = OPERATOR;
 				result[size + 1].value = MUL;
@@ -328,6 +336,8 @@ t_item *append_multiplications(t_item *items)
 			else
 			{
 				result = realloc(result, sizeof(t_item) * (size + 1));
+				if (!result)
+					error_manager("Realloc failed!");
 				memcpy(&(result[size]), items, sizeof(t_item));
 				size++;
 			}
@@ -335,12 +345,16 @@ t_item *append_multiplications(t_item *items)
 		else if (items->type == PARENTHESIS && get_parenthesis_type(items->value) == OPENING)
 		{
 			result = realloc(result, sizeof(t_item) * (size + 1));
+			if (!result)
+				error_manager("Realloc failed!");
 			memcpy(&(result[size]), items, sizeof(t_item));
 			size++;
 		}
 		items++;
 	}
 	result = realloc(result, sizeof(t_item) * (size + 1));
+	if (!result)
+		error_manager("Realloc failed!");
 
 	memcpy(&(result[size]), items, sizeof(t_item));
 	return (result);
@@ -361,7 +375,7 @@ t_item *parser(char *line, char *variablechar)
 	if (find_illegal_stuff(items))
 	{
 		free(items);
-		exit (1);
+		systemexit(1);
 	}
 	return (items);
 }

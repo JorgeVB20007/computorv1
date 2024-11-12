@@ -91,7 +91,7 @@ void			apply_final_negatives(t_group_item *items);
 int				merge_expressions_in_parentheses_sum_sub(t_group_item *items);
 int				merge_expressions_in_parentheses_mul_div(t_group_item *items);
 void			sort_items(t_group_item *items);
-void	check_and_fix_illegal_divisions(t_group_item *items);
+void			check_and_fix_illegal_divisions(t_group_item *items, int *something_changed);
 
 
 int	get_second_degree_solutions(double *params);

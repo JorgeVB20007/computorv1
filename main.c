@@ -89,26 +89,27 @@ int main(int argc, char **argv)
 		something_changed = 0;
 		grouped = multiply_parentheses_by_themselves(grouped, &something_changed);
 		grouped = nothingness_cleanup(grouped);
+		sort_items(grouped);
 
 		something_changed += merge_expressions_in_parentheses_sum_sub(grouped);
+		grouped = nothingness_cleanup(grouped);
+		sort_items(grouped);
+
+		check_and_fix_illegal_divisions(grouped, &something_changed);
+		grouped = nothingness_cleanup(grouped);
+		sort_items(grouped);
+
+		something_changed += eliminate_lonely_parentheses(grouped);
+		grouped = nothingness_cleanup(grouped);
+
+		multiply_expression_by_parenthesis(grouped);
 		grouped = nothingness_cleanup(grouped);
 	}
 	
 
-	printf("> Multiplied long expressions in parentheses \033[3;90m([x + 1] * [x - 2] -> [x^2 - x - 2])\033[0m\n  ");
+	printf("> Multiplied and divided long expressions in parentheses \033[3;90m([x + 1] * [x - 2] -> [x^2 - x - 2])\033[0m\n  ");
 	groupprinter(grouped);
 	printf("\n");
-
-
-	sort_items(grouped);
-
-	check_and_fix_illegal_divisions(grouped);
-	grouped = nothingness_cleanup(grouped);
-	printf("> Checked divisions \033[3;90m([x + 1] / [x + 1] -> 1) | ([x + 1] / [x + 1] -> error)\033[0m\n  ");
-	groupprinter(grouped);
-	printf("\n");
-
-
 
 
 	eliminate_parentheses(grouped);
@@ -121,7 +122,6 @@ int main(int argc, char **argv)
 
 	add_everything_up(grouped);
 	grouped = nothingness_cleanup(grouped);
-////	last_operations(grouped);
 	apply_final_negatives(grouped);
 
 	
@@ -137,4 +137,4 @@ int main(int argc, char **argv)
 
 	result_formatter(second_deg_equation, variablechar);
 	free(second_deg_equation);
-}
+	system}

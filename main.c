@@ -1,20 +1,13 @@
 #include "parser.h"
 
 
-
-int main(int argc, char **argv)
+static void do_it(char *argv)
 {
 	char	variablechar = 0;
-	
-	if (argc > 2)
-		error_manager("Multiple arguments provided.");
-	else if (argc < 2)
-		error_manager("No arguments provided.");
 
+	printf("> Equation recieved:\n  %s\n\n", argv);
 
-	printf("> Equation recieved:\n  %s\n\n", argv[1]);
-
-	t_item *items = parser(argv[1], &variablechar);
+	t_item *items = parser(argv, &variablechar);
 
 	printf("> Equation as types:\n  ");
 	type_line_printer(items);
@@ -137,4 +130,41 @@ int main(int argc, char **argv)
 
 	result_formatter(second_deg_equation, variablechar);
 	free(second_deg_equation);
-	system}
+}
+
+
+
+int main(int argc, char **argv)
+{
+	
+	if (argc > 2)
+		error_manager("Multiple arguments provided.");
+	else if (argc < 2)
+	{
+		while (1)
+		{
+			write(1, "Enter your equation: ", 21);
+			char	addchar = 1;
+			char	*param = calloc(1, sizeof(char));
+			int		size = 1;
+
+			while (addchar != 0 && addchar != '\n')
+			{
+				read(1, &addchar, 1);
+				if (addchar == '\n')
+					break;
+				size++;
+				param = realloc(param, size);
+				param[size - 2] = addchar;
+				param[size - 1] = 0;
+			}
+			do_it(param);
+			free(param);
+			write(1, "\n", 1);
+		}
+	}
+	else
+	{
+		do_it(argv[1]);
+	}
+}

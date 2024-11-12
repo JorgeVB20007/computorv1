@@ -167,7 +167,7 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: WTF is this char?? --> %c <--.\n", *input);
-			systemexit(1);
+			exit(1);
 			return (NULL);
 		}
 		else
@@ -175,7 +175,7 @@ t_item *typeit(char *input)
 			if (retval)
 				free(retval);
 			dprintf(2, "Error: An error ocurred when trying to parse the char %c.\n", *input);
-			systemexit(1);
+			exit(1);
 			return (NULL);
 		}
 		retval = realloc(retval, sizeof(t_item) * ++size);
@@ -375,7 +375,7 @@ t_item *parser(char *line, char *variablechar)
 	if (find_illegal_stuff(items))
 	{
 		free(items);
-		systemexit(1);
+		exit(1);
 	}
 	return (items);
 }

@@ -42,7 +42,7 @@ int is_illegal(char c)
 void error_manager(const char *reason)
 {
 	dprintf(2, "\033[1;31mError:\033[0m %s\n", reason);
-	systemexit(1);
+	exit(1);
 }
 
 int	is_exponent_out_of_bounds(t_group_item *items)

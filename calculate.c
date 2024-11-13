@@ -107,6 +107,7 @@ t_group_item	*append_to_group(t_group_item *old, t_group_item *new, int size)
 	return (result);
 }
 
+//	x^2^3 = x^8
 double	power_stacking(t_item **items)
 {
 	double	currentvalue = (*items)->numvalue;
@@ -167,7 +168,36 @@ t_group_item	*make_groups(t_item **items)
 
 	while ((*items)->type != THEEND)
 	{
-		if ((*items)->type == PARENTHESIS || (*items)->type == EQUAL || (*items)->type == OPERATOR)
+		if ((*items)->type == PARENTHESIS && get_parenthesis_type((*items)->value) == CLOSING && ((*items) + 1)->type == OPERATOR && ((*items) + 1)->value == DIV && (((*items) + 2)->type == NUMBER || ((*items) + 2)->type == VARIABLE))
+		{
+			result = append_to_group(result, grouped_item(*items), size++);
+			(*items)++;
+
+
+			while ((*items)->type == OPERATOR && (*items)->value == DIV && (((*items) + 1)->type == NUMBER || ((*items) + 1)->type == VARIABLE))
+			{
+				result = append_to_group(result, grouped_item(*items), size++);
+				(*items)++;
+
+				result = realloc(result, sizeof(t_group_item) * (size + 1));
+				if (!result)
+					error_manager("Realloc failed!");
+				result[size].type = EXPRESSION;
+				if ((*items)->type == NUMBER)
+				{
+					result[size].exponent = 0.0;
+					result[size].multiplier = (*items)->numvalue;
+				}
+				else
+				{
+					result[size].exponent = power_stacking(items);
+					result[size].multiplier = 1.0;
+				}
+				size++;
+				(*items)++;
+			}
+		}
+		else if ((*items)->type == PARENTHESIS || (*items)->type == EQUAL || (*items)->type == OPERATOR)
 		{
 			result = append_to_group(result, grouped_item(*items), size);
 
@@ -223,7 +253,10 @@ t_group_item	*make_groups(t_item **items)
 				if ((*items)->type == OPERATOR && ((*items)->value == MUL || (*items)->value == DIV))
 				{
 					if ((*items + 1)->type == PARENTHESIS)
+					{
+						is_division = 0;
 						break ;
+					}
 
 					if ((*items)->value == DIV)
 						is_division = 1;

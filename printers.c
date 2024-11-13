@@ -93,28 +93,28 @@ void	type_line_printer(t_item *types)
 void single_item_printer(t_item *type)
 {
 	if (type->type == NUMBER)
-		printf("> Type: \033[0;33mNBR%f <", type->numvalue);
+		printf("> Type: \033[0;33mNBR%f\033[0m <", type->numvalue);
 	else if (type->type == PARENTHESIS)
-		printf("> Type: \033[0;34mPAR%c <", type->value);
+		printf("> Type: \033[0;34mPAR%c\033[0m <", type->value);
 	else if (type->type == OPERATOR)
 	{
 		if (type->value == SUM)
-			printf("> Type: \033[0;32mOPRSUM (+) <");
+			printf("> Type: \033[0;32mOPRSUM (+)\033[0m <");
 		else if (type->value == SUB)
-			printf("> Type: \033[0;32mOPRSUB (-) <");
+			printf("> Type: \033[0;32mOPRSUB (-)\033[0m <");
 		else if (type->value == MUL)
-			printf("> Type: \033[0;32mOPRMUL (*) <");
+			printf("> Type: \033[0;32mOPRMUL (*)\033[0m <");
 		else if (type->value == DIV)
-			printf("> Type: \033[0;32mOPRDIV (/) <");
+			printf("> Type: \033[0;32mOPRDIV (/)\033[0m <");
 		else if (type->value == POW)
-			printf("> Type: \033[0;32mOPRPOW (^) <");
+			printf("> Type: \033[0;32mOPRPOW (^)\033[0m <");
 		else
-			printf("> Type: \033[0;32mOPRIDK (?) <");
+			printf("> Type: \033[0;32mOPRIDK (?)\033[0m <");
 	}
 	else if (type->type == VARIABLE)
-		printf("> Type: \033[0;35mVAR%c <", type->value);
+		printf("> Type: \033[0;35mVAR%c\033[0m <", type->value);
 	else if (type->type == EQUAL)
-		printf("> Type: \033[1;36mEQL= <");
+		printf("> Type: \033[1;36mEQL=\033[0m <");
 	else if (type->type == NOTHING)
 		printf("\033[0;90m> Type: Nothing\033[0m <");
 	else if (type->type == THEEND)

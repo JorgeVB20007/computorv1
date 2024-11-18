@@ -8,7 +8,16 @@ static void	second_degree_result(double *params, char variablechar)
 
 	printf("> Applied QUADRATIC FORMULA\n\n");
 	if (solutions == -1)
-		printf("\033[1m--- Equation results in imaginary numbers ---\033[0m\n");
+	{
+		double real;
+		double imaginary;
+
+		real = (params[1] * -1.0) / (2.0 * params[2]);
+		imaginary = (my_sqrt((my_pow(params[1], 2.0) - 4 * params[2] * params[0]) * -1)) / (2.0 * params[2]);
+		printf("> Solutions:\n");
+		printf("\033[1m--- %c(1) = %f + %fi ---\033[0m\n", variablechar, real, imaginary);
+		printf("\033[1m--- %c(2) = %f - %fi ---\033[0m\n", variablechar, real, imaginary);
+	}
 	else if (solutions == 1)
 	{
 		printf("> Solution:\n");
@@ -38,9 +47,9 @@ static void	zero_degree_result(double *params)
 	printf("%g = 0\n\n", params[0]);
 	printf("> Solution:\n");
 	if (params[0] == 0.0)
-		printf("\033[1m--- The equation is \033[1;32mTRUE\033[0m\033[1m ---\033[0m\n");
+		printf("\033[1m--- The equation is \033[1;32mTRUE\033[0m\033[1m (any real number is a solution) ---\033[0m\n");
 	else
-		printf("\033[1m--- The equation is \033[1;31mFALSE\033[0m\033[1m ---\033[0m\n");
+		printf("\033[1m--- The equation is \033[1;31mFALSE\033[0m\033[1m (there's no solution) ---\033[0m\n");
 }
 
 

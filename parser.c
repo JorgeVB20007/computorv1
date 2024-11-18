@@ -85,6 +85,8 @@ t_item *typeit(char *input)
 		advance(&input);
 		if (!*input)
 			break;
+		if (*input == 'i')
+			error_manager("'i' is reserved for imaginary numbers and isn't a valid variable name.");
 		if (isdigit(*input))
 		{
 			double	value = 0.0;
